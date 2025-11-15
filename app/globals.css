@@ -1,0 +1,163 @@
+  @import "tailwindcss";
+
+  /* ✅ Define theme colors */
+  @theme {
+    --color-primary: #007FFF;
+    --color-secondary: #8F00FF;
+    --color-background: #F9FAFB;
+    --color-surface: #FFFFFF;
+    --color-text-primary: #1E293B;
+    --color-text-secondary: #6B7280;
+
+    /* Dark mode colors */
+    --color-primary-dark: #3B82F6;
+    --color-secondary-dark: #A78BFA;
+    --color-background-dark: #111827;
+    --color-surface-dark: #1F2937;
+    --color-text-primary-dark: #F1F5F9;
+    --color-text-secondary-dark: #9CA3AF;
+  }
+
+  @layer base {
+    :root {
+      /* Shadows */
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }
+
+    * {
+      @apply border-gray-200 dark:border-gray-700;
+    }
+
+    body {
+      @apply bg-background text-text-primary;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      @apply font-semibold;
+    }
+    h1 { @apply text-4xl md:text-5xl; }
+    h2 { @apply text-3xl md:text-4xl; }
+    h3 { @apply text-2xl md:text-3xl; }
+    h4 { @apply text-xl md:text-2xl; }
+  }
+
+  @layer components {
+    /* Button Styles */
+    .btn {
+      @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    .btn-primary {
+      @apply bg-primary text-white hover:opacity-90;
+    }
+
+    .btn-secondary {
+      @apply bg-secondary text-white hover:opacity-90;
+    }
+
+    .btn-outline {
+      @apply border-2 border-primary text-primary hover:bg-primary hover:text-white;
+    }
+
+    .btn-danger {
+      @apply bg-red-500 text-white hover:bg-red-600;
+    }
+
+    .btn-ghost {
+      @apply hover:bg-gray-100 dark:hover:bg-gray-800;
+    }
+
+    /* Card Styles */
+    .card {
+      @apply bg-surface rounded-xl p-6 shadow-md;
+    }
+
+    /* ✅ PERBAIKAN: Jangan reference .card dengan @apply, tulis langsung */
+    .card-hover {
+      @apply bg-surface rounded-xl p-6 shadow-md transition-all duration-200 hover:shadow-lg hover:-translate-y-1;
+    }
+
+  /* Input Styles (Perbaikan Final) */
+  .input {
+    @apply w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
+          bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary;
+  }
+
+
+    /* ✅ PERBAIKAN: Tulis lengkap tanpa reference .input */
+    .textarea {
+      @apply w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary min-h-[100px] resize-y;
+    }
+
+    .select {
+      @apply w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer;
+    }
+
+    /* Badge Styles */
+    .badge {
+      @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+    }
+    .badge-success { @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200; }
+    .badge-warning { @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200; }
+    .badge-danger { @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200; }
+    .badge-info { @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200; }
+
+    /* Container */
+    .container-custom {
+      @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    }
+
+    /* Section */
+    .section {
+      @apply py-12 md:py-20;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      @apply fixed left-0 top-0 h-full w-64 bg-surface border-r border-gray-200 dark:border-gray-700 z-40;
+    }
+
+    .sidebar-link {
+      @apply flex items-center gap-3 px-4 py-3 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-primary dark:hover:text-primary rounded-lg transition-colors;
+    }
+
+    /* ✅ PERBAIKAN: Tulis lengkap tanpa reference .sidebar-link */
+    .sidebar-link-active {
+      @apply flex items-center gap-3 px-4 py-3 rounded-lg transition-colors bg-primary/10 text-primary font-medium;
+    }
+
+    /* Table */
+    .table {
+      @apply w-full border-collapse;
+    }
+
+    .table th {
+      @apply px-4 py-3 text-left text-sm font-semibold text-text-primary bg-gray-50 dark:bg-gray-800;
+    }
+
+    .table td {
+      @apply px-4 py-3 text-sm text-text-secondary border-t border-gray-200 dark:border-gray-700;
+    }
+
+    .table tr:hover td {
+      @apply bg-gray-50 dark:bg-gray-800;
+    }
+  }
+
+  @layer utilities {
+    .text-balance {
+      text-wrap: balance;
+    }
+
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+  }
