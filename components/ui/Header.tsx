@@ -13,8 +13,7 @@ const navigation = [
   { name: 'Layanan', href: '/layanan' },
   { name: 'Portfolio', href: '/portfolio' },
   { name: 'Artikel', href: '/artikel' },
-  { name: 'Tentang', href: '/tentang' },
-  { name: 'Kontak', href: '/kontak' },
+  { name: 'Tentang', href: '/tentang' }
 ]
 
 export default function Header() {

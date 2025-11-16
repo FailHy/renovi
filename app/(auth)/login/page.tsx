@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -49,9 +50,9 @@ export default function LoginPage() {
         return
       }
 
-      router.push('/admin')
+      router.push('/admin/beranda')
       router.refresh()
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan sistem. Silakan coba lagi.')
     } finally {
       setIsLoading(false)
@@ -59,130 +60,121 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Branding */}
-      <div className="hidden md:flex md:w-1/2 lg:w-2/5 bg-gradient-to-br from-primary to-primary/80 items-center justify-center p-12 relative overflow-hidden">
-        <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl opacity-80" />
-        <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl opacity-80" />
-        
-        <div className="z-10 text-white text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-24 h-24 bg-white/20 backdrop-blur-md rounded-2xl shadow-lg border border-white/30 mb-4">
-            <Building2 className="w-12 h-12" />
-          </div>
-          <h1 className="text-5xl font-bold">Renovi</h1>
-          <p className="text-xl font-light opacity-80">
-            Construction Management System
-          </p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4">
+
+      {/* Background Ornaments */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="w-[500px] h-[500px] bg-primary/20 blur-3xl rounded-full absolute -top-20 -left-20 opacity-40" />
+        <div className="w-[400px] h-[400px] bg-blue-400/10 blur-2xl rounded-full absolute bottom-0 right-0 opacity-40" />
       </div>
 
-      {/* Right Side - Login Form */}
-      <div className="w-full md:w-1/2 lg:w-3/5 flex items-center justify-center p-6 md:p-12 bg-background">
-        <div className="w-full max-w-md">
-          {/* Header */}
-          <div className="text-left mb-8">
-            <h1 className="text-3xl font-bold text-foreground">
-              Selamat Datang Kembali
-            </h1>
-            <p className="text-muted-foreground">
-              Silakan masuk ke akun Anda untuk melanjutkan.
-            </p>
-          </div>
+      <div className="relative w-full max-w-md">
 
-          {/* Login Card */}
-          <Card className="shadow-xl border-0">
-            <CardContent className="pt-6 space-y-5">
-              {error && (
-                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                  <p className="text-destructive text-sm text-center font-medium">
+{/* login card */}
+        <Card className="backdrop-blur-xl border border-white/40 shadow-2xl rounded-2xl">
+          <CardContent className="p-8 space-y-8">
+            <div className="flex flex-col items-center text-center space-y-4 mb-2">
+              <div className="w-20 h-20 bg-white border border-primary/40 border-slate-500  text-primary-foreground flex items-center justify-center rounded-3xl">
+                <Building2 className="w-9 h-9" />
+              </div>
+
+              <div>
+                <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">
+                  Selamat Datang
+                </h1>
+                <p className="text-sm text-slate-600 mt-1">
+                  Masuk ke akun Renovi Anda untuk melanjutkan ke dashboard.
+                </p>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-5">
+
+              {/* Username */}
+              <div className="space-y-2">
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <Input
+                    placeholder="Username"
+                    className="pl-11 h-12 rounded-xl text-base border-slate-300"
+                    disabled={isLoading}
+                    {...register('username')}
+                  />
+                </div>
+                {errors.username && (
+                  <p className="text-sm text-red-600">{errors.username.message}</p>
+                )}
+              </div>
+
+              {/* Password */}
+              <div className="space-y-2">
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Password"
+                    className="pl-11 pr-12 h-12 rounded-xl text-base border-slate-300"
+                    disabled={isLoading}
+                    {...register('password')}
+                  />
+                
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    disabled={isLoading}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-sm text-red-600">{errors.password.message}</p>
+                )}
+              </div>
+
+                {/* Error */}
+                {error && (
+                  <div className="p-4 bg-red-500/10 border border-red-400/30 text-red-700 rounded-lg text-sm text-center font-medium">
                     {error}
-                  </p>
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                {/* Username Input */}
-                <div className="space-y-2">
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" />
-                    <Input
-                      type="text"
-                      placeholder="Username"
-                      className="pl-10 h-11"
-                      disabled={isLoading}
-                      {...register('username')}
-                    />
                   </div>
-                  {errors.username && (
-                    <p className="text-sm text-destructive px-1">
-                      {errors.username.message}
-                    </p>
-                  )}
-                </div>
+                )}
 
-                {/* Password Input */}
-                <div className="space-y-2">
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" />
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Password"
-                      className="pl-10 pr-10 h-11"
-                      disabled={isLoading}
-                      {...register('password')}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-foreground transition-colors"
-                      disabled={isLoading}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </button>
+              {/* Button */}
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-12 rounded-xl text-base font-semibold shadow-lg bg-primary hover:bg-primary/90 transition-all"
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Memproses...
                   </div>
-                  {errors.password && (
-                    <p className="text-sm text-destructive px-1">
-                      {errors.password.message}
-                    </p>
-                  )}
-                </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    Masuk <ArrowRight className="w-5 h-5" />
+                  </div>
+                )}
+              </Button>
 
-                <Button
-                  type="submit"
-                  className="w-full h-11 bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25 hover:shadow-primary/30 transition-all duration-200"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Masuk...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center gap-2">
-                      <span>Lanjutkan ke Dashboard</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </div>
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+            </form>
+          </CardContent>
+        </Card>
 
-          {/* Footer */}
-          <div className="text-center mt-6">
-            <Button variant="ghost" className="text-muted-foreground font-normal">
-              <Link href="/">
-                &larr; Kembali ke Halaman Utama
-              </Link>
-            </Button>
-            <p className="text-xs text-muted-foreground/60 font-light mt-4">
-              © {new Date().getFullYear()} Renovi Systems. All rights reserved.
-            </p>
-          </div>
+        {/* Footer */}
+        <div className="text-center mt-8">
+          <Link
+            href="/"
+            className="text-sm text-slate-500 hover:text-slate-700 transition"
+          >
+            ← Kembali ke halaman utama
+          </Link>
+
+          <p className="text-xs text-slate-400 mt-4">
+            © {new Date().getFullYear()} Renovi Systems
+          </p>
         </div>
       </div>
     </div>

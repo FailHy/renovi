@@ -1,13 +1,15 @@
-import { defineConfig } from 'drizzle-kit';
-import 'dotenv/config'; // pastikan paling atas
+import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
-  schema: './lib/db/schema.ts', // path ke file schema
-  out: './drizzle',             // folder migrasi
-  dialect: 'postgresql',
+  dialect: "postgresql",
+  schema: "./lib/db/schema.ts",
+  out: "./drizzle",
   dbCredentials: {
-    url: process.env.DATABASE_URL!, // ambil dari .env
+    host: "localhost",
+    port: 5432,
+    user: "postgres",
+    password: "admin",
+    database: "renovi_local",
+    ssl: false
   },
-  verbose: true,
-  strict: true,
 });
