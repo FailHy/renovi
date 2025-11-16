@@ -1,32 +1,9 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { db } from "@/lib/db"; // Sesuaikan dengan path db Anda
-import { users } from "@/lib/db/schema"; // Sesuaikan dengan schema Anda
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-
-/**
- * Module augmentation to extend NextAuth types so session.user.username is available.
- */
-declare module "next-auth" {
-  interface Session {
-    users: {
-      id: string;
-      username: string;
-      role: string;
-      name?: string | null;
-      email?: string | null;
-    };
-  }
-
-  interface User {
-    id: string;
-    username: string;
-    role: string;
-    name?: string | null;
-    email?: string | null;
-  }
-}
 
 const handler = NextAuth({
   providers: [
@@ -68,6 +45,7 @@ const handler = NextAuth({
         return {
           id: foundUser.id.toString(),
           name: foundUser.nama,
+          email: foundUser.email || null,
           username: foundUser.username,
           role: foundUser.role,
         };
@@ -92,12 +70,12 @@ const handler = NextAuth({
       return token;
     },
     async session({ session, token }) {
-    if (token && session.user) {
+      if (token && session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
-        (session.user as any).username = token.username as string;
-    }
-    return session;
+        session.user.username = token.username as string;
+      }
+      return session;
     }
   },
   secret: process.env.NEXTAUTH_SECRET,
