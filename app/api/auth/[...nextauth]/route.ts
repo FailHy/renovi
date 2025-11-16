@@ -1,4 +1,6 @@
-import NextAuth from "next-auth";
+// FILE: src/app/api/auth/[...nextauth]/route.ts
+// ========================================
+import NextAuth, { User } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
@@ -13,25 +15,23 @@ const handler = NextAuth({
         username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials): Promise<User | null> {
         if (!credentials?.username || !credentials?.password) {
           throw new Error("Username dan password harus diisi");
         }
 
-        // Cari user di database
-        const user = await db
+        const userResult = await db
           .select()
           .from(users)
           .where(eq(users.username, credentials.username))
           .limit(1);
 
-        if (!user || user.length === 0) {
+        if (!userResult || userResult.length === 0) {
           throw new Error("Username atau password salah");
         }
 
-        const foundUser = user[0];
+        const foundUser = userResult[0];
 
-        // Verifikasi password
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
           foundUser.password
@@ -41,14 +41,16 @@ const handler = NextAuth({
           throw new Error("Username atau password salah");
         }
 
-        // Return user data (HARUS sesuai dengan interface User)
-        return {
+        // FIX: NextAuth User type requires string (no null allowed)
+        const user: User = {
           id: foundUser.id.toString(),
-          username: foundUser.username,
-          role: foundUser.role,
-          name: foundUser.nama || null,
-          email: foundUser.email || null,
+          name: foundUser.nama ?? "",          // required by NextAuth
+          email: foundUser.email ?? "",        // MUST NOT be null
+          username: foundUser.username,        // custom
+          role: foundUser.role,                // custom
         };
+
+        return user;
       }
     })
   ],
@@ -58,7 +60,6 @@ const handler = NextAuth({
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 hari
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -69,6 +70,7 @@ const handler = NextAuth({
       }
       return token;
     },
+
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
