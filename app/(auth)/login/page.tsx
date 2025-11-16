@@ -8,7 +8,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Building2 } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/Card'
+import { Building2, Eye, EyeOff, User, Lock, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Username harus diisi'),
@@ -21,6 +23,7 @@ export default function LoginPage() {
   const router = useRouter()
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const {
     register,
@@ -42,89 +45,145 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        setError(result.error)
+        setError('Kredensial tidak valid. Silakan periksa username dan password Anda.')
         return
       }
 
-      // Redirect berdasarkan role akan ditangani oleh middleware
-      router.push('/dashboard')
+      router.push('/admin')
       router.refresh()
     } catch (err) {
-      setError('Terjadi kesalahan. Silakan coba lagi.')
+      setError('Terjadi kesalahan sistem. Silakan coba lagi.')
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" 
-         style={{ 
-           background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)' 
-         }}>
-      <div className="w-full max-w-md">
-        {/* Logo & Title */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white dark:bg-gray-800 rounded-2xl shadow-lg mb-4">
-            <Building2 className="w-8 h-8" style={{ color: 'var(--color-primary)' }} />
+    <div className="min-h-screen flex">
+      {/* Left Side - Branding */}
+      <div className="hidden md:flex md:w-1/2 lg:w-2/5 bg-gradient-to-br from-primary to-primary/80 items-center justify-center p-12 relative overflow-hidden">
+        <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl opacity-80" />
+        <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl opacity-80" />
+        
+        <div className="z-10 text-white text-center space-y-4">
+          <div className="inline-flex items-center justify-center w-24 h-24 bg-white/20 backdrop-blur-md rounded-2xl shadow-lg border border-white/30 mb-4">
+            <Building2 className="w-12 h-12" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Renovi</h1>
-          <p className="text-white/90">Platform Pelacakan Renovasi & Konstruksi</p>
+          <h1 className="text-5xl font-bold">Renovi</h1>
+          <p className="text-xl font-light opacity-80">
+            Construction Management System
+          </p>
         </div>
+      </div>
 
-        {/* Login Card */}
-        <div className="card">
-          <h2 className="text-2xl font-semibold mb-6 text-center">Masuk ke Akun Anda</h2>
-
-          {error && (
-            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Input
-              label="Username"
-              type="text"
-              placeholder="Masukkan username"
-              error={errors.username?.message}
-              {...register('username')}
-            />
-
-            <Input
-              label="Password"
-              type="password"
-              placeholder="Masukkan password"
-              error={errors.password?.message}
-              {...register('password')}
-            />
-
-            <Button
-              type="submit"
-              variant="primary"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Memproses...' : 'Masuk'}
-            </Button>
-          </form>
-
-          {/* Demo Accounts Info */}
-          <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-            <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
-              Demo Accounts:
+      {/* Right Side - Login Form */}
+      <div className="w-full md:w-1/2 lg:w-3/5 flex items-center justify-center p-6 md:p-12 bg-background">
+        <div className="w-full max-w-md">
+          {/* Header */}
+          <div className="text-left mb-8">
+            <h1 className="text-3xl font-bold text-foreground">
+              Selamat Datang Kembali
+            </h1>
+            <p className="text-muted-foreground">
+              Silakan masuk ke akun Anda untuk melanjutkan.
             </p>
-            <div className="text-xs space-y-1" style={{ color: 'var(--color-text-secondary)' }}>
-              <p>Admin: admin / admin123</p>
-              <p>Mandor: mandor / mandor123</p>
-              <p>Klien: klien / klien123</p>
-            </div>
+          </div>
+
+          {/* Login Card */}
+          <Card className="shadow-xl border-0">
+            <CardContent className="pt-6 space-y-5">
+              {error && (
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <p className="text-destructive text-sm text-center font-medium">
+                    {error}
+                  </p>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                {/* Username Input */}
+                <div className="space-y-2">
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" />
+                    <Input
+                      type="text"
+                      placeholder="Username"
+                      className="pl-10 h-11"
+                      disabled={isLoading}
+                      {...register('username')}
+                    />
+                  </div>
+                  {errors.username && (
+                    <p className="text-sm text-destructive px-1">
+                      {errors.username.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Password Input */}
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" />
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Password"
+                      className="pl-10 pr-10 h-11"
+                      disabled={isLoading}
+                      {...register('password')}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-foreground transition-colors"
+                      disabled={isLoading}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p className="text-sm text-destructive px-1">
+                      {errors.password.message}
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-11 bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25 hover:shadow-primary/30 transition-all duration-200"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Masuk...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2">
+                      <span>Lanjutkan ke Dashboard</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </div>
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Footer */}
+          <div className="text-center mt-6">
+            <Button variant="ghost" className="text-muted-foreground font-normal">
+              <Link href="/">
+                &larr; Kembali ke Halaman Utama
+              </Link>
+            </Button>
+            <p className="text-xs text-muted-foreground/60 font-light mt-4">
+              © {new Date().getFullYear()} Renovi Systems. All rights reserved.
+            </p>
           </div>
         </div>
-
-        {/* Footer */}
-        <p className="text-center text-white/80 text-sm mt-6">
-          © 2024 Renovi. All rights reserved.
-        </p>
       </div>
     </div>
   )
