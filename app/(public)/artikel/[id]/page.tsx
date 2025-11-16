@@ -135,7 +135,7 @@ export default async function ArtikelDetailPage({ params }: Props) {
                   <div className="flex items-center justify-between pt-8 mt-8 border-t border-gray-200">
                     <span className="text-gray-600 text-sm">Bagikan artikel ini:</span>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="border-gray-200">
+                      <Button variant="outline" className="border-gray-200">
                         <Share2 className="w-4 h-4 mr-2" />
                         Share
                       </Button>
