@@ -14,7 +14,7 @@ Platform modern untuk monitoring dan tracking progres proyek renovasi dan konstr
 
 ## 🛠️ Tech Stack
 
-- **Framework**: Next.js 14 (App Router)
+- **Framework**: Next.js
 - **Language**: TypeScript
 - **Styling**: TailwindCSS
 - **Database**: PostgreSQL
