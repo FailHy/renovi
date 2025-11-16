@@ -247,14 +247,14 @@ export default function DetailProyekMandorPage() {
                     </div>
                     <div className="flex gap-2">
                       <Button
-                        size="sm"
+                        
                         variant="ghost"
                         onClick={() => handleOpenMilestoneModal(milestone)}
                       >
                         <Pencil className="w-4 h-4" />
                       </Button>
                       <Button
-                        size="sm"
+                        
                         variant="ghost"
                         className="text-red-600 hover:text-red-700"
                       >

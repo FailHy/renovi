@@ -359,7 +359,7 @@ export default function ManajemenTestimoniPage() {
                 {/* Actions */}
                 <div className="flex gap-2">
                   <Button
-                    // size="sm"
+                   
                     variant="outline"
                     onClick={() => handleViewDetail(testimoni)}
                     className="flex-1"
@@ -369,7 +369,7 @@ export default function ManajemenTestimoniPage() {
                   {!testimoni.approved && (
                     <>
                       <Button
-                        // size="sm"
+                       
                         onClick={() => handleAction(testimoni, 'approve')}
                         className="bg-green-600 hover:bg-green-700 text-white"
                       >
@@ -377,7 +377,7 @@ export default function ManajemenTestimoniPage() {
                         Approve
                       </Button>
                       <Button
-                        // size="sm"
+                       
                         variant="danger"
                         onClick={() => handleAction(testimoni, 'reject')}
                       >
