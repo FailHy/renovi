@@ -92,7 +92,7 @@ export default function LayananPage() {
                 Hubungi kami untuk konsultasi gratis dan dapatkan penawaran terbaik
               </p>
               <Link href="/kontak">
-                <Button variant="primary" size="lg" className="bg-white text-light-primary hover:bg-white/90">
+                <Button variant="primary" className="bg-white text-light-primary hover:bg-white/90">
                   Hubungi Kami
                 </Button>
               </Link>
