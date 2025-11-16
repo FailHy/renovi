@@ -41,13 +41,13 @@ const handler = NextAuth({
           throw new Error("Username atau password salah");
         }
 
-        // Return user data
+        // Return user data (HARUS sesuai dengan interface User)
         return {
           id: foundUser.id.toString(),
-          name: foundUser.nama,
-          email: foundUser.email || null,
           username: foundUser.username,
           role: foundUser.role,
+          name: foundUser.nama || null,
+          email: foundUser.email || null,
         };
       }
     })
