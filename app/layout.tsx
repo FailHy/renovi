@@ -1,4 +1,4 @@
-// FILE: app/layout.tsx (ROOT LAYOUT)
+// FILE: src/app/layout.tsx (ROOT LAYOUT)
 // ========================================
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
@@ -6,6 +6,8 @@ import './globals.css'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import SessionProvider from '@/components/SessionProvider'
+import Header from '@/components/ui/Header'
+import Footer from '@/components/ui/Footer'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -22,11 +24,16 @@ export default async function RootLayout({
   const session = await getServerSession(authOptions)
 
   return (
-    // Tambahkan class="dark" di sini untuk mengaktifkan mode gelap
-    <html lang="id" suppressHydrationWarning className="dark"> 
-      <body className={inter.className}>
+    <html lang="id" suppressHydrationWarning>
+      <body className={`${inter.className} antialiased`}>
         <SessionProvider session={session}>
-          {children}
+          <div className="min-h-screen flex flex-col">
+            <Header />
+            <main className="flex-1">
+              {children}
+            </main>
+            <Footer />
+          </div>
         </SessionProvider>
       </body>
     </html>
