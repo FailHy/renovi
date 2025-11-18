@@ -50,7 +50,7 @@ export default function LoginPage() {
         return
       }
 
-      router.push('/admin/beranda')
+      router.push('/admin')
       router.refresh()
     } catch {
       setError('Terjadi kesalahan sistem. Silakan coba lagi.')

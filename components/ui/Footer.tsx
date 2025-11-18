@@ -11,7 +11,7 @@ const navigation = [
   { name: 'Portfolio', href: '/portfolio' },
   { name: 'Artikel', href: '/artikel' },
   { name: 'Tentang', href: '/tentang' },
-  { name: 'Kontak', href: '/kontak' },
+  { name: 'Kontak', href: 'https://wa.me/6283170619950?text=Halo%20Renovi,%20saya%20ingin%20konsultasi%20tentang%20proyek%20renovasi' },
 ]
 
 export default function Footer() {

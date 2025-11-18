@@ -105,7 +105,7 @@ export default function LayananPage() {
                   </ul>
                   
                   {/* CTA Button */}
-                  <Link href="/kontak" className="mt-auto">
+                  <Link href="https://wa.me/6283170619950?text=Halo%20Renovi,%20saya%20ingin%20konsultasi%20tentang%20proyek%20renovasi" className="mt-auto">
                     <Button 
                       variant="outline" 
                       className="w-full border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 group/btn"
@@ -129,7 +129,7 @@ export default function LayananPage() {
                 Hubungi kami untuk konsultasi gratis dan dapatkan penawaran terbaik untuk proyek renovasi Anda
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/kontak">
+                <Link href="https://wa.me/6283170619950?text=Halo%20Renovi,%20saya%20ingin%20konsultasi%20tentang%20proyek%20renovasi">
                       <Button 
                       className="bg-white text-primary hover:bg-white/90 shadow-xl hover:shadow-2xl transition-all duration-300 group flex items-center justify-center gap-2 px-6 py-3 h-12"
                     >

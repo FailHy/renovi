@@ -1,4 +1,4 @@
-// FILE: app/(public)/kontak/page.tsx
+// FILE: app/(public)https://wa.me/6283170619950?text=Halo%20Renovi,%20saya%20ingin%20konsultasi%20tentang%20proyek%20renovasi/page.tsx
 // ========================================
 'use client'
 

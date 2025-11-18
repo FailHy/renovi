@@ -81,7 +81,7 @@ export default withAuth(
           path.startsWith('/layanan') ||
           path.startsWith('/portfolio') ||
           path.startsWith('/tentang') ||
-          path.startsWith('/kontak') ||
+          // path.startsWith('https://wa.me/6283170619950?text=Halo%20Renovi,%20saya%20ingin%20konsultasi%20tentang%20proyek%20renovasi') ||
           path.startsWith('/artikel') ||
           path === '/login' ||
           path === '/register' ||

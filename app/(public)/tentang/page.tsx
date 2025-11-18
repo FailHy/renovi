@@ -193,7 +193,7 @@ export default function TentangPage() {
               Hubungi kami sekarang untuk konsultasi gratis dan penawaran terbaik
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/kontak">
+              <Link href="https://wa.me/6283170619950?text=Halo%20Renovi,%20saya%20ingin%20konsultasi%20tentang%20proyek%20renovasi">
                                   <Button 
                       className="bg-white text-primary hover:bg-white/90 shadow-xl hover:shadow-2xl transition-all duration-300 group flex items-center justify-center gap-2 px-6 py-3 h-12"
                     >
