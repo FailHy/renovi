@@ -1,97 +1,77 @@
-"use client";
+// File: components/dashboard/ProjectChart.tsx
+'use client'
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-// TIDAK perlu import 'next-themes', agar lebih sederhana
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
 
 interface ChartData {
-  name: string;
-  // Ini adalah dataKey yang diharapkan, 'progress'
-  progress: number; 
+  name: string
+  progress: number
 }
 
 interface ProjectProgressChartProps {
-  data: ChartData[];
+  data: ChartData[]
 }
 
-// Komponen Tooltip Kustom (UI lebih baik)
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="p-2 bg-card border border-border rounded-lg shadow-sm">
-        <p className="font-bold text-card-foreground">{label}</p>
-        <p className="text-sm text-primary">
-          {/* Menggunakan 'Total' agar konsisten dengan dataKey */}
-          {`Total: ${payload[0].value}`}
-        </p>
-      </div>
-    );
-  }
-  return null;
-};
-
-// Fungsi untuk memotong teks
-const formatTick = (tick: string) => {
-  if (tick.length > 20) {
-    return tick.substring(0, 20) + "...";
-  }
-  return tick;
-};
-
 export default function ProjectProgressChart({ data }: ProjectProgressChartProps) {
-  
-  // Menggunakan warna statis dari tema Anda yang aman 
-  // untuk light/dark mode
-  const tickColor = "#9CA3AF"; // --muted-foreground (dark)
-  const barColor = "#3B82F6";  // --primary (dark)
-  const barHoverColor = "#60A5FA";
+  // Warna untuk setiap status
+  const COLORS = {
+    'Perencanaan': '#F59E0B', // Yellow/Orange
+    'Berlangsung': '#3B82F6', // Blue
+    'Selesai': '#10B981', // Green
+    'Dibatalkan': '#EF4444', // Red
+  }
+
+  // Custom Tooltip
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+          <p className="font-semibold text-gray-900 dark:text-white">
+            {payload[0].payload.name}
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Total: <span className="font-bold">{payload[0].value}</span> proyek
+          </p>
+        </div>
+      )
+    }
+    return null
+  }
 
   return (
-    <div className="w-full h-96">
+    <div className="w-full h-80">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
-          margin={{
-            top: 5,
-            right: 10,
-            left: -10,
-            bottom: 5,
-          }}
+          margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
         >
-          <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" className="dark:stroke-gray-700" />
           <XAxis 
             dataKey="name" 
-            stroke={tickColor}
-            fontSize={12} 
-            tickLine={false} 
-            axisLine={false} 
-            tickFormatter={formatTick}
+            stroke="#6B7280"
+            style={{ fontSize: '12px' }}
           />
           <YAxis 
-            stroke={tickColor}
-            fontSize={12} 
-            tickLine={false} 
-            axisLine={false} 
-            allowDecimals={false} // Menghilangkan desimal
+            stroke="#6B7280"
+            style={{ fontSize: '12px' }}
           />
-          <Tooltip 
-            cursor={{ fill: 'transparent' }} 
-            content={<CustomTooltip />}
+          <Tooltip content={<CustomTooltip />} />
+          <Legend 
+            wrapperStyle={{ paddingTop: '20px' }}
+            iconType="circle"
           />
           <Bar 
-            // PENTING: dataKey di sini adalah 'progress'
             dataKey="progress" 
-            fill={barColor}
-            radius={[4, 4, 0, 0]} 
-            activeBar={{ fill: barHoverColor }}
-          />
+            name="Jumlah Proyek"
+            radius={[8, 8, 0, 0]}
+          >
+            {data.map((entry, index) => (
+              <Cell 
+                key={`cell-${index}`} 
+                fill={COLORS[entry.name as keyof typeof COLORS] || '#3B82F6'} 
+              />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>

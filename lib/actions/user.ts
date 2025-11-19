@@ -1,3 +1,4 @@
+// lib/actions/user.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
@@ -9,7 +10,6 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
 // --- FUNGSI GET USERS ---
-// Mengambil semua data pengguna dengan urutan nama ascending
 export async function getUsers() {
   try {
     const session = await getServerSession(authOptions)
@@ -26,27 +26,45 @@ export async function getUsers() {
   }
 }
 
-// --- FUNGSI CREATE USER ---
-// Membuat pengguna baru dengan password yang di-hash
-export async function createUser(data: NewUser & { password?: string }) {
+// --- FUNGSI CREATE USER (FIXED) ---
+export async function createUser(formData: FormData) {
   try {
     const session = await getServerSession(authOptions)
     if (!session || session.user.role !== 'admin') {
       throw new Error('Unauthorized')
     }
 
-    if (!data.password) {
-      throw new Error('Password harus diisi saat membuat pengguna baru')
+    // Extract data dari FormData
+    const nama = formData.get('nama') as string
+    const username = formData.get('username') as string
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+    const role = formData.get('role') as 'admin' | 'mandor' | 'pelanggan'
+    const telpon = formData.get('telpon') as string
+    const alamat = formData.get('alamat') as string
+
+    // Validasi required fields
+    if (!nama || !username || !email || !password || !role) {
+      throw new Error('Semua field wajib diisi')
+    }
+
+    if (password.length < 6) {
+      throw new Error('Password minimal 6 karakter')
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(data.password, 10)
+    const hashedPassword = await bcrypt.hash(password, 10)
 
     const [user] = await db
       .insert(users)
       .values({
-        ...data,
+        nama,
+        username,
+        email,
         password: hashedPassword,
+        role,
+        telpon: telpon || null,
+        alamat: alamat || null,
       })
       .returning()
 
@@ -59,25 +77,44 @@ export async function createUser(data: NewUser & { password?: string }) {
   }
 }
 
-// --- FUNGSI UPDATE USER ---
-// Mengupdate data pengguna, termasuk password jika diubah
-export async function updateUser(
-  id: string,
-  data: Partial<NewUser> & { password?: string }
-) {
+// --- FUNGSI UPDATE USER (FIXED) ---
+export async function updateUser(id: string, formData: FormData) {
   try {
     const session = await getServerSession(authOptions)
     if (!session || session.user.role !== 'admin') {
       throw new Error('Unauthorized')
     }
 
-    const updateData: any = { ...data, updatedAt: new Date() }
+    // Extract data dari FormData
+    const nama = formData.get('nama') as string
+    const username = formData.get('username') as string
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+    const role = formData.get('role') as 'admin' | 'mandor' | 'pelanggan'
+    const telpon = formData.get('telpon') as string
+    const alamat = formData.get('alamat') as string
 
-    // Hash password jika diubah
-    if (data.password) {
-      updateData.password = await bcrypt.hash(data.password, 10)
-    } else {
-      delete updateData.password
+    // Validasi required fields (kecuali password)
+    if (!nama || !username || !email || !role) {
+      throw new Error('Nama, username, email, dan role harus diisi')
+    }
+
+    const updateData: any = { 
+      nama,
+      username,
+      email,
+      role,
+      telpon: telpon || null,
+      alamat: alamat || null,
+      updatedAt: new Date()
+    }
+
+    // Hash password hanya jika diisi
+    if (password && password.trim() !== '') {
+      if (password.length < 6) {
+        throw new Error('Password minimal 6 karakter')
+      }
+      updateData.password = await bcrypt.hash(password, 10)
     }
 
     const [user] = await db
@@ -96,7 +133,6 @@ export async function updateUser(
 }
 
 // --- FUNGSI DELETE USER ---
-// Menghapus pengguna dengan proteksi admin terakhir
 export async function deleteUser(id: string) {
   try {
     const session = await getServerSession(authOptions)
@@ -104,7 +140,7 @@ export async function deleteUser(id: string) {
       throw new Error('Unauthorized')
     }
 
-    // Tambahan: Jangan biarkan admin terakhir dihapus
+    // Jangan biarkan admin terakhir dihapus
     const adminUsers = await db.select().from(users).where(eq(users.role, 'admin'))
     if (adminUsers.length <= 1 && adminUsers[0].id === id) {
       throw new Error('Tidak dapat menghapus admin terakhir.')

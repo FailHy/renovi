@@ -12,7 +12,8 @@ import {
   Plus,
   ArrowRight,
   XCircle,
-  Briefcase
+  Briefcase,
+  TrendingUp
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -160,16 +161,29 @@ export default async function AdminBerandaPage() {
           </div>
 
           {/* Project Chart */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg font-semibold">Ringkasan Status Proyek</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ProjectProgressChart 
-                data={stats.chartData.map(d => ({ name: d.name, progress: d.total }))} 
-              />
-            </CardContent>
-          </Card>
+          <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-gray-50 overflow-hidden">
+  <CardHeader className="pb-4 border-b border-gray-100">
+    <div className="flex items-center justify-between">
+      <CardTitle className="text-xl font-bold flex items-center gap-2">
+        <div className="p-2 bg-gradient-to-br from-primary to-secondary rounded-lg">
+          <TrendingUp className="w-5 h-5 text-white" />
+        </div>
+        Ringkasan Status Proyek
+      </CardTitle>
+      <Badge variant="info" className="bg-blue-500/10 text-blue-600 border-0">
+        Live Data
+      </Badge>
+    </div>
+  </CardHeader>
+  <CardContent className="p-6">
+    {/* PERBAIKAN: Tambahkan wrapper dengan min-height */}
+    <div className="w-full min-h-[320px]">
+      <ProjectProgressChart 
+        data={stats.chartData.map(d => ({ name: d.name, progress: d.total }))} 
+      />
+    </div>
+  </CardContent>
+</Card>
         </div>
 
         {/* Right Column */}
