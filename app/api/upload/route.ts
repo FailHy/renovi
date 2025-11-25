@@ -1,11 +1,14 @@
-import { writeFile } from 'fs/promises'
+// src/app/api/upload/route.ts
+import { writeFile, unlink } from 'fs/promises'
 import { join } from 'path'
+import { existsSync } from 'fs'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get('image') as File
+    const oldFilename = formData.get('oldFilename') as string | null
     
     if (!file) {
       return NextResponse.json(
@@ -30,6 +33,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // HAPUS GAMBAR LAMA JIKA ADA
+    if (oldFilename) {
+      try {
+        const oldFilePath = join(process.cwd(), 'public', 'uploads', oldFilename)
+        if (existsSync(oldFilePath)) {
+          await unlink(oldFilePath)
+          console.log('🗑️ Gambar lama berhasil dihapus:', oldFilename)
+        }
+      } catch (error) {
+        console.error('⚠️ Error menghapus gambar lama:', error)
+        // Continue anyway - tidak perlu gagal jika hapus gagal
+      }
+    }
+
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
@@ -42,18 +59,20 @@ export async function POST(request: NextRequest) {
     // Path untuk menyimpan file
     const publicUploadsPath = join(process.cwd(), 'public', 'uploads', filename)
     
-    // Simpan file
+    // Simpan file baru
     await writeFile(publicUploadsPath, buffer)
+    console.log('✅ Gambar baru berhasil disimpan:', filename)
 
     // Return URL yang bisa diakses public
     const imageUrl = `/uploads/${filename}`
 
     return NextResponse.json({ 
       success: true, 
-      url: imageUrl 
+      url: imageUrl,
+      message: oldFilename ? 'Gambar berhasil diupdate' : 'Gambar berhasil diupload'
     })
   } catch (error) {
-    console.error('Upload error:', error)
+    console.error('❌ Upload error:', error)
     return NextResponse.json(
       { error: 'Terjadi kesalahan saat upload' },
       { status: 500 }

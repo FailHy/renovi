@@ -73,7 +73,7 @@ export default function ManajemenArtikelPage() {
     resolver: zodResolver(artikelSchema),
   })
 
-  const currentImage = watch('gambar')
+  const imagePreview = watch('gambar')
 
   // Data fetching
   useEffect(() => {
@@ -192,6 +192,7 @@ export default function ManajemenArtikelPage() {
   })
 
   // Modal handlers
+  // Update handleOpenModal
   const handleOpenModal = (artikel?: Artikel) => {
     if (artikel) {
       setEditingArtikel(artikel)
@@ -202,6 +203,10 @@ export default function ManajemenArtikelPage() {
         gambar: artikel.gambar || '',
         published: artikel.published,
       })
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     } else {
       setEditingArtikel(null)
       reset({
@@ -211,14 +216,23 @@ export default function ManajemenArtikelPage() {
         gambar: '',
         published: false,
       })
+      // Reset file input untuk create baru
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
     setIsModalOpen(true)
   }
 
+  // Update handleCloseModal
   const handleCloseModal = () => {
     setIsModalOpen(false)
     setEditingArtikel(null)
     reset()
+    // Reset file input saat modal ditutup
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   // Form submission
@@ -543,11 +557,11 @@ export default function ManajemenArtikelPage() {
                 disabled={isSubmitting || uploading}
               />
 
-              {currentImage ? (
+              {imagePreview ? (
                 <div className="space-y-3">
                   <div className="relative">
                     <img
-                      src={currentImage}
+                      src={imagePreview}
                       alt="Preview"
                       className="w-full h-48 object-cover rounded-lg border border-gray-300"
                     />

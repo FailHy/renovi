@@ -1,3 +1,4 @@
+// src/lib/actions/artikel.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
@@ -6,7 +7,9 @@ import { artikels, users } from '@/lib/db/schema'
 import { eq, desc, isNotNull } from 'drizzle-orm'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { unlink } from 'fs/promises'
 import { join } from 'path'
+import { existsSync } from 'fs'
 
 export async function getAllArtikels() {
   try {
@@ -104,32 +107,7 @@ export async function updateArtikel(id: string, data: {
       throw new Error('Unauthorized')
     }
 
-    // Jika mengupdate gambar, hapus gambar lama
-    if (data.gambar) {
-      const [oldArtikel] = await db
-        .select({ gambar: artikels.gambar })
-        .from(artikels)
-        .where(eq(artikels.id, id))
-
-      // Hapus gambar lama jika ada
-      if (oldArtikel?.gambar) {
-        try {
-          const filename = oldArtikel.gambar.split('/').pop()
-          if (filename) {
-            const filePath = join(process.cwd(), 'public', 'uploads', filename)
-            const fs = await import('fs')
-            if (fs.existsSync(filePath)) {
-              await unlink(filePath)
-              console.log('🗑️ Old image deleted:', filename)
-            }
-          }
-        } catch (error) {
-          console.error('Error deleting old image:', error)
-          // Continue anyway
-        }
-      }
-    }
-
+    // Update artikel
     const [artikel] = await db
       .update(artikels)
       .set({ 
@@ -148,8 +126,6 @@ export async function updateArtikel(id: string, data: {
   }
 }
 
-
-
 export async function deleteArtikel(id: string) {
   try {
     const session = await getServerSession(authOptions)
@@ -157,6 +133,30 @@ export async function deleteArtikel(id: string) {
       throw new Error('Unauthorized')
     }
 
+    // Ambil data artikel untuk mendapatkan gambar
+    const [artikel] = await db
+      .select({ gambar: artikels.gambar })
+      .from(artikels)
+      .where(eq(artikels.id, id))
+
+    // Hapus gambar jika ada
+    if (artikel?.gambar) {
+      try {
+        const filename = artikel.gambar.split('/').pop()
+        if (filename) {
+          const filePath = join(process.cwd(), 'public', 'uploads', filename)
+          if (existsSync(filePath)) {
+            await unlink(filePath)
+            console.log('🗑️ Gambar artikel berhasil dihapus:', filename)
+          }
+        }
+      } catch (error) {
+        console.error('⚠️ Error menghapus gambar:', error)
+        // Continue anyway
+      }
+    }
+
+    // Hapus artikel dari database
     await db.delete(artikels).where(eq(artikels.id, id))
     
     revalidatePath('/admin/artikel')
@@ -180,8 +180,4 @@ export async function getKategoriOptions() {
     console.error('Error fetching kategori options:', error)
     return []
   }
-}
-
-function unlink(filePath: string) {
-  throw new Error('Function not implemented.')
 }
