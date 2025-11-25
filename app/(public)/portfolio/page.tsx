@@ -1,17 +1,16 @@
 // FILE: app/(public)/portfolio/page.tsx
 // ========================================
 import { db } from '@/lib/db'
-import { portfolios } from '@/lib/db/schema'
+import { Portfolio, portfolios } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { Card, CardContent } from '@/components/ui/Card'
-import { Building2, MapPin, Calendar, Tag, Award } from 'lucide-react'
+import { Building2, MapPin, Calendar, Tag, Award, Clock, Users } from 'lucide-react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/Button'
 
 export default async function PortfolioPage() {
   const publishedPortfolios = await db.query.portfolios.findMany({
     where: eq(portfolios.published, true),
-    orderBy: (portfolios, { desc }) => [desc(portfolios.createdAt)],
+    orderBy: (Portfolio, { desc }) => [desc(portfolios.createdAt)],
     with: {
       projek: true,
     },
@@ -23,9 +22,9 @@ export default async function PortfolioPage() {
       <section className="bg-gradient-to-br from-primary via-primary/95 to-secondary text-white py-20 md:py-28">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-6 py-3 rounded-full text-sm mb-6">
-          <Award className="w-5 h-5" />
-          <span>Portfolio Unggulan</span>
-        </div>
+            <Award className="w-5 h-5" />
+            <span>Portfolio Unggulan</span>
+          </div>
           <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
             Portfolio Kami
           </h1>
@@ -83,6 +82,7 @@ export default async function PortfolioPage() {
                       
                       {/* Details */}
                       <div className="space-y-3 text-sm">
+                        {/* Kategori */}
                         <div className="flex items-center gap-3">
                           <Tag className="w-4 h-4 text-gray-400" />
                           <div className="flex justify-between flex-1">
@@ -91,6 +91,16 @@ export default async function PortfolioPage() {
                           </div>
                         </div>
                         
+                        {/* Klien */}
+                        <div className="flex items-center gap-3">
+                          <Users className="w-4 h-4 text-gray-400" />
+                          <div className="flex justify-between flex-1">
+                            <span className="text-gray-600">Klien:</span>
+                            <span className="text-gray-900">{portfolio.client}</span>
+                          </div>
+                        </div>
+                        
+                        {/* Lokasi */}
                         <div className="flex items-center gap-3">
                           <MapPin className="w-4 h-4 text-gray-400" />
                           <div className="flex justify-between flex-1">
@@ -99,11 +109,27 @@ export default async function PortfolioPage() {
                           </div>
                         </div>
                         
+                        {/* Durasi */}
                         <div className="flex items-center gap-3">
-                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <Clock className="w-4 h-4 text-gray-400" />
                           <div className="flex justify-between flex-1">
                             <span className="text-gray-600">Durasi:</span>
                             <span className="text-gray-900">{portfolio.duration}</span>
+                          </div>
+                        </div>
+                        
+                        {/* Tanggal Selesai */}
+                        <div className="flex items-center gap-3">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <div className="flex justify-between flex-1">
+                            <span className="text-gray-600">Selesai:</span>
+                            <span className="text-gray-900">
+                              {new Date(portfolio.completedDate).toLocaleDateString('id-ID', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric'
+                              })}
+                            </span>
                           </div>
                         </div>
                       </div>

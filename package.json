@@ -11,6 +11,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx --require dotenv/config lib/db/seed.ts",
+    "db:seed-porto": "tsx --require dotenv/config lib/db/seed-porto.ts",
     "drizzle": "drizzle-kit"
   },
   "dependencies": {

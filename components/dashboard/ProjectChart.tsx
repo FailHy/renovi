@@ -71,7 +71,7 @@ export default function ProjectProgressChart({ data }: ProjectProgressChartProps
                 fill={COLORS[entry.name as keyof typeof COLORS] || '#3B82F6'} 
               />
             ))}
-          </Bar>
+          </Bar> 
         </BarChart>
       </ResponsiveContainer>
     </div>

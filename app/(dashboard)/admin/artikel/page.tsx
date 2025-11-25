@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Pencil, Trash2, Search, Eye, EyeOff, Newspaper } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Pencil, Trash2, Search, Eye, EyeOff, Newspaper, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/TextArea'
@@ -14,6 +14,13 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { formatDate } from '@/lib/utils'
+import { 
+  getAllArtikels, 
+  createArtikel, 
+  updateArtikel, 
+  deleteArtikel, 
+  getKategoriOptions 
+} from '@/lib/actions/artikel'
 
 const artikelSchema = z.object({
   judul: z.string().min(1, 'Judul harus diisi'),
@@ -25,69 +32,146 @@ const artikelSchema = z.object({
 
 type ArtikelFormData = z.infer<typeof artikelSchema>
 
-// Mock data
-const mockArtikels = [
-  {
-    id: '1',
-    judul: 'Tips Memilih Kontraktor Renovasi yang Tepat',
-    konten: 'Memilih kontraktor renovasi yang tepat adalah langkah penting untuk memastikan proyek Anda berjalan lancar. Berikut beberapa tips yang bisa Anda terapkan...',
-    kategori: 'Tips Renovasi',
-    gambar: '/images/articles/artikel-1.jpg',
-    published: true,
-    posting: '2024-03-15',
-    author: { nama: 'Administrator Renovi' },
-  },
-  {
-    id: '2',
-    judul: 'Tren Desain Interior 2024: Minimalis Modern',
-    konten: 'Desain interior minimalis modern terus menjadi tren di tahun 2024. Konsep ini mengedepankan kesederhanaan, fungsionalitas, dan estetika yang bersih...',
-    kategori: 'Inspirasi Desain',
-    gambar: '/images/articles/artikel-2.jpg',
-    published: true,
-    posting: '2024-03-10',
-    author: { nama: 'Administrator Renovi' },
-  },
-  {
-    id: '3',
-    judul: 'Panduan Lengkap Renovasi Dapur: Budget hingga Eksekusi',
-    konten: 'Renovasi dapur adalah investasi yang akan meningkatkan kenyamanan dan nilai rumah Anda. Berikut panduan lengkapnya...',
-    kategori: 'Tips Renovasi',
-    gambar: '/images/articles/artikel-3.jpg',
-    published: false,
-    posting: '2024-03-05',
-    author: { nama: 'Administrator Renovi' },
-  },
-]
-
-const kategoriOptions = [
-  'Tips Renovasi',
-  'Inspirasi Desain',
-  'Tutorial',
-  'Berita',
-  'Studi Kasus',
-]
+interface Artikel {
+  id: string
+  judul: string
+  konten: string
+  kategori?: string
+  gambar?: string
+  published: boolean
+  posting: string
+  author: {
+    nama: string
+  }
+}
 
 export default function ManajemenArtikelPage() {
+  // State management
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingArtikel, setEditingArtikel] = useState<any>(null)
-  const [artikels, setArtikels] = useState(mockArtikels)
+  const [editingArtikel, setEditingArtikel] = useState<Artikel | null>(null)
+  const [artikels, setArtikels] = useState<Artikel[]>([])
+  const [kategoriOptions, setKategoriOptions] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterKategori, setFilterKategori] = useState('')
   const [filterPublished, setFilterPublished] = useState('')
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [deletingArtikel, setDeletingArtikel] = useState<any>(null)
+  const [deletingArtikel, setDeletingArtikel] = useState<Artikel | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
 
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Form handling
   const {
     register,
     handleSubmit,
     reset,
-    watch,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<ArtikelFormData>({
     resolver: zodResolver(artikelSchema),
   })
 
+  const currentImage = watch('gambar')
+
+  // Data fetching
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      const [artikelsData, kategoriData] = await Promise.all([
+        getAllArtikels(),
+        getKategoriOptions()
+      ])
+      
+      setArtikels(artikelsData)
+      setKategoriOptions(kategoriData)
+    } catch (error) {
+      console.error('Error fetching data:', error)
+      setArtikels([])
+      setKategoriOptions([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Image upload handling
+  const handleImageUpload = async (file: File, isUpdate: boolean = false, oldImageUrl?: string) => {
+    try {
+      setUploading(true)
+
+      const formData = new FormData()
+      formData.append('image', file)
+      
+      if (isUpdate && oldImageUrl) {
+        const oldFilename = oldImageUrl.split('/').pop()
+        if (oldFilename) {
+          formData.append('oldFilename', oldFilename)
+        }
+      }
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      
+      if (result.success) {
+        setValue('gambar', result.url)
+      } else {
+        alert(result.error || 'Gagal mengupload gambar')
+      }
+    } catch (error) {
+      console.error('Upload error:', error)
+      alert('Terjadi kesalahan saat upload gambar')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      // Validasi client-side
+      if (!file.type.startsWith('image/')) {
+        alert('Harap pilih file gambar yang valid (PNG, JPG, JPEG)')
+        return
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Ukuran file maksimal 5MB')
+        return
+      }
+
+      // Tentukan apakah ini update atau create baru
+      const isUpdate = !!editingArtikel
+      const oldImageUrl = editingArtikel?.gambar
+      
+      handleImageUpload(file, isUpdate, oldImageUrl)
+    }
+  }
+
+  const removeImage = () => {
+    setValue('gambar', '')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click()
+  }
+
+  // Filtering logic
   const filteredArtikels = artikels.filter((artikel) => {
     const matchSearch =
       artikel.judul.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -107,7 +191,8 @@ export default function ManajemenArtikelPage() {
     return matchSearch && matchKategori && matchPublished
   })
 
-  const handleOpenModal = (artikel?: any) => {
+  // Modal handlers
+  const handleOpenModal = (artikel?: Artikel) => {
     if (artikel) {
       setEditingArtikel(artikel)
       reset({
@@ -136,103 +221,110 @@ export default function ManajemenArtikelPage() {
     reset()
   }
 
+  // Form submission
   const onSubmit = async (data: ArtikelFormData) => {
     try {
+      let result
       if (editingArtikel) {
-        console.log('Update artikel:', data)
-        alert('Artikel berhasil diupdate!')
+        result = await updateArtikel(editingArtikel.id, data)
       } else {
-        console.log('Create artikel:', data)
-        alert('Artikel berhasil ditambahkan!')
+        result = await createArtikel(data)
       }
-      handleCloseModal()
+      
+      if (result.success) {
+        await fetchData()
+        handleCloseModal()
+      } else {
+        alert(result.error || `Gagal ${editingArtikel ? 'mengupdate' : 'membuat'} artikel`)
+      }
     } catch (error) {
       console.error('Error:', error)
-      alert('Terjadi kesalahan!')
+      alert('Terjadi kesalahan saat menyimpan data')
     }
   }
 
-  const handleDelete = (artikel: any) => {
+  // Delete handlers
+  const handleDelete = (artikel: Artikel) => {
     setDeletingArtikel(artikel)
     setIsDeleteModalOpen(true)
   }
 
   const confirmDelete = async () => {
+    if (!deletingArtikel) return
+
     try {
-      console.log('Delete artikel:', deletingArtikel.id)
-      setArtikels(artikels.filter((a) => a.id !== deletingArtikel.id))
-      alert('Artikel berhasil dihapus!')
+      const result = await deleteArtikel(deletingArtikel.id)
+      if (result.success) {
+        await fetchData()
+      } else {
+        alert(result.error || 'Gagal menghapus artikel')
+      }
       setIsDeleteModalOpen(false)
       setDeletingArtikel(null)
     } catch (error) {
       console.error('Error:', error)
-      alert('Terjadi kesalahan!')
+      alert('Terjadi kesalahan saat menghapus data')
     }
   }
 
+  // Stats calculation
   const getStats = () => {
     const published = artikels.filter((a) => a.published).length
     const draft = artikels.filter((a) => !a.published).length
-    return { published, draft }
+    return { published, draft, total: artikels.length }
   }
 
   const stats = getStats()
 
   return (
-    <div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Section */}
       <DashboardHeader
         title="Manajemen Artikel"
         description="Kelola artikel dan konten blog Renovi"
         action={
-          <Button onClick={() => handleOpenModal()}>
-            <Plus className="w-4 h-4 mr-2" />
+          <Button 
+            onClick={() => handleOpenModal()}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm px-4 py-2.5 rounded-lg font-medium transition-colors"
+          >
+            <Plus className="w-4 h-4" />
             Tambah Artikel
           </Button>
         }
       />
 
-      {/* Stats */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <Card>
+        <Card className="border border-gray-200 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-1">
-                  Total Artikel
-                </p>
-                <p className="text-3xl font-bold">{artikels.length}</p>
+                <p className="text-sm text-gray-600 mb-1">Total Artikel</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
               </div>
-              <Newspaper className="w-12 h-12 text-light-primary dark:text-dark-primary opacity-20" />
+              <Newspaper className="w-12 h-12 text-blue-600 opacity-20" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border border-gray-200 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-1">
-                  Published
-                </p>
-                <p className="text-3xl font-bold text-green-600">
-                  {stats.published}
-                </p>
+                <p className="text-sm text-gray-600 mb-1">Published</p>
+                <p className="text-3xl font-bold text-green-600">{stats.published}</p>
               </div>
               <Eye className="w-12 h-12 text-green-600 opacity-20" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border border-gray-200 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-1">
-                  Draft
-                </p>
-                <p className="text-3xl font-bold text-yellow-600">
-                  {stats.draft}
-                </p>
+                <p className="text-sm text-gray-600 mb-1">Draft</p>
+                <p className="text-3xl font-bold text-yellow-600">{stats.draft}</p>
               </div>
               <EyeOff className="w-12 h-12 text-yellow-600 opacity-20" />
             </div>
@@ -240,22 +332,23 @@ export default function ManajemenArtikelPage() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card className="mb-6">
+      {/* Filters Section */}
+      <Card className="mb-6 border border-gray-200 shadow-sm">
         <div className="p-4">
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
                 type="text"
                 placeholder="Cari judul atau konten..."
-                className="input pl-10"
+                className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+            
             <select
-              className="select"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors"
               value={filterKategori}
               onChange={(e) => setFilterKategori(e.target.value)}
             >
@@ -266,8 +359,9 @@ export default function ManajemenArtikelPage() {
                 </option>
               ))}
             </select>
+            
             <select
-              className="select"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors"
               value={filterPublished}
               onChange={(e) => setFilterPublished(e.target.value)}
             >
@@ -279,83 +373,121 @@ export default function ManajemenArtikelPage() {
         </div>
       </Card>
 
-      {/* Articles Grid */}
-      {filteredArtikels.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Newspaper className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-            <p className="text-light-text-secondary dark:text-dark-text-secondary">
+      {/* Content Section */}
+      {loading ? (
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="text-center py-16">
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+            </div>
+            <p className="mt-3 text-gray-600 font-medium">Memuat data artikel...</p>
+          </CardContent>
+        </Card>
+      ) : filteredArtikels.length === 0 ? (
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="text-center py-16">
+            <Newspaper className="w-20 h-20 mx-auto mb-4 text-gray-300" />
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">
               {searchTerm || filterKategori || filterPublished
                 ? 'Tidak ada artikel yang ditemukan'
                 : 'Belum ada artikel'}
+            </h3>
+            <p className="text-gray-500 mb-6 max-w-md mx-auto">
+              {searchTerm || filterKategori || filterPublished
+                ? 'Coba ubah filter pencarian atau kata kunci'
+                : 'Mulai dengan membuat artikel pertama untuk blog Anda'}
             </p>
+            {!searchTerm && !filterKategori && !filterPublished && (
+              <Button 
+                onClick={() => handleOpenModal()}
+                className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm px-6 py-2.5 rounded-lg font-medium transition-colors"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Tambah Artikel Pertama
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredArtikels.map((artikel) => (
-            <Card key={artikel.id} hover>
-              <div className="relative">
-                <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-t-xl overflow-hidden">
+            <Card 
+              key={artikel.id} 
+              className="border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col h-full"
+            >
+              {/* Image Section */}
+              <div className="relative flex-shrink-0">
+                <div className="aspect-video bg-gray-100 rounded-t-xl overflow-hidden">
                   {artikel.gambar ? (
                     <img
                       src={artikel.gambar}
                       alt={artikel.judul}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform hover:scale-105 duration-300"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Newspaper className="w-16 h-16 text-gray-400" />
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                      <Newspaper className="w-12 h-12 text-gray-400" />
                     </div>
                   )}
                 </div>
                 <div className="absolute top-3 right-3">
-                  <Badge variant={artikel.published ? 'success' : 'warning'}>
+                  <Badge 
+                    variant={artikel.published ? 'success' : 'warning'}
+                    className="text-xs px-2.5 py-1 font-medium shadow-sm"
+                  >
                     {artikel.published ? 'Published' : 'Draft'}
                   </Badge>
                 </div>
               </div>
 
-              <CardContent className="p-6">
+              {/* Content Section */}
+              <CardContent className="p-5 flex flex-col flex-grow">
                 {artikel.kategori && (
-                  <Badge variant="info" className="mb-2">
+                  <Badge 
+                    variant="info" 
+                    className="mb-3 text-xs w-fit px-2.5 py-1"
+                  >
                     {artikel.kategori}
                   </Badge>
                 )}
 
-                <h3 className="font-semibold text-lg mb-2 line-clamp-2">
+                <h3 className="font-semibold text-lg text-gray-900 mb-3 line-clamp-2 leading-tight">
                   {artikel.judul}
                 </h3>
 
-                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-4 line-clamp-3">
+                <p className="text-sm text-gray-600 mb-4 line-clamp-3 flex-grow leading-relaxed">
                   {artikel.konten}
                 </p>
 
-                <div className="flex items-center justify-between text-sm mb-4">
-                  <span className="text-light-text-secondary dark:text-dark-text-secondary">
-                    {artikel.author.nama}
-                  </span>
-                  <span className="text-light-text-secondary dark:text-dark-text-secondary">
-                    {formatDate(artikel.posting)}
-                  </span>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => handleOpenModal(artikel)}
-                    className="flex-1"
-                  >
-                    <Pencil className="w-4 h-4 mr-1" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleDelete(artikel)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                {/* Footer with Actions */}
+                <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-sm font-medium text-gray-700 truncate">
+                      {artikel.author.nama}
+                    </span>
+                    <span className="text-xs text-gray-500 mt-0.5">
+                      {formatDate(artikel.posting)}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-1 ml-3 flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleOpenModal(artikel)}
+                      className="h-8 w-8 p-0 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center justify-center"
+                      title="Edit artikel"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleDelete(artikel)}
+                      className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center"
+                      title="Hapus artikel"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -370,58 +502,141 @@ export default function ManajemenArtikelPage() {
         title={editingArtikel ? 'Edit Artikel' : 'Tambah Artikel'}
         size="xl"
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Input
-            label="Judul Artikel"
-            placeholder="Contoh: Tips Memilih Kontraktor Terbaik"
-            error={errors.judul?.message}
-            {...register('judul')}
-          />
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Judul Artikel
+              </label>
+              <Input
+                placeholder="Contoh: Tips Memilih Kontraktor Terbaik"
+                error={errors.judul?.message}
+                className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
+                {...register('judul')}
+              />
+            </div>
 
-          <Select
-            label="Kategori"
-            options={kategoriOptions.map((k) => ({ value: k, label: k }))}
-            error={errors.kategori?.message}
-            {...register('kategori')}
-          />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Kategori
+              </label>
+              <Select
+                options={kategoriOptions.map((k) => ({ value: k, label: k }))}
+                error={errors.kategori?.message}
+                className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
+                {...register('kategori')}
+              />
+            </div>
 
-          <Input
-            label="URL Gambar"
-            placeholder="/images/artikel.jpg"
-            error={errors.gambar?.message}
-            {...register('gambar')}
-          />
+            {/* Image Upload Section */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Gambar Artikel
+              </label>
+              
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                accept="image/*"
+                className="hidden"
+                disabled={isSubmitting || uploading}
+              />
 
-          <Textarea
-            label="Konten Artikel"
-            placeholder="Tulis konten artikel di sini..."
-            rows={10}
-            error={errors.konten?.message}
-            {...register('konten')}
-          />
+              {currentImage ? (
+                <div className="space-y-3">
+                  <div className="relative">
+                    <img
+                      src={currentImage}
+                      alt="Preview"
+                      className="w-full h-48 object-cover rounded-lg border border-gray-300"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={removeImage}
+                      className="absolute top-2 right-2 h-8 w-8 p-0 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-sm"
+                      disabled={isSubmitting || uploading}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    Gambar berhasil diupload
+                  </p>
+                </div>
+              ) : (
+                <div
+                  onClick={triggerFileInput}
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors bg-gray-50"
+                >
+                  {uploading ? (
+                    <div className="flex flex-col items-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+                      <p className="text-gray-600 font-medium">Mengupload...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 font-medium">Klik untuk upload gambar</p>
+                      <p className="text-gray-500 text-sm mt-1">
+                        PNG, JPG, JPEG (max. 5MB)
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+              {errors.gambar?.message && (
+                <p className="text-red-600 text-sm mt-1">{errors.gambar.message}</p>
+              )}
+            </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="published"
-              className="w-4 h-4"
-              {...register('published')}
-            />
-            <label htmlFor="published" className="text-sm">
-              Publikasikan artikel sekarang
-            </label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Konten Artikel
+              </label>
+              <Textarea
+                placeholder="Tulis konten artikel di sini..."
+                rows={10}
+                error={errors.konten?.message}
+                className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
+                {...register('konten')}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="published"
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                {...register('published')}
+              />
+              <label htmlFor="published" className="text-sm text-gray-700">
+                Publikasikan artikel sekarang
+              </label>
+            </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="ghost" onClick={handleCloseModal}>
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={handleCloseModal}
+              className="px-5 py-2.5 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg font-medium transition-colors"
+              disabled={isSubmitting || uploading}
+            >
               Batal
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting
+            <Button 
+              type="submit" 
+              disabled={isSubmitting || uploading}
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white shadow-sm rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting || uploading
                 ? 'Menyimpan...'
                 : editingArtikel
-                ? 'Update'
-                : 'Simpan'}
+                ? 'Update Artikel'
+                : 'Simpan Artikel'}
             </Button>
           </div>
         </form>
@@ -433,18 +648,28 @@ export default function ManajemenArtikelPage() {
         onClose={() => setIsDeleteModalOpen(false)}
         title="Konfirmasi Hapus"
       >
-        <p className="mb-6">
-          Apakah Anda yakin ingin menghapus artikel{' '}
-          <strong>{deletingArtikel?.judul}</strong>? Tindakan ini tidak dapat
-          dibatalkan.
-        </p>
-        <div className="flex justify-end gap-3">
-          <Button variant="ghost" onClick={() => setIsDeleteModalOpen(false)}>
-            Batal
-          </Button>
-          <Button variant="danger" onClick={confirmDelete}>
-            Hapus
-          </Button>
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            Apakah Anda yakin ingin menghapus artikel{' '}
+            <strong className="text-red-600">{deletingArtikel?.judul}</strong>? 
+            Tindakan ini tidak dapat dibatalkan.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="px-5 py-2.5 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg font-medium transition-colors"
+            >
+              Batal
+            </Button>
+            <Button 
+              variant="danger" 
+              onClick={confirmDelete}
+              className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white shadow-sm rounded-lg font-medium transition-colors"
+            >
+              Hapus
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>
