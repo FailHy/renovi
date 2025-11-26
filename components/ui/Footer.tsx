@@ -34,14 +34,15 @@ export default function Footer() {
               Platform pelacakan progres renovasi dan konstruksi yang memudahkan monitoring proyek Anda secara real-time.
             </p>
             <div className="flex gap-3">
-              <a href="#" className="w-10 h-10 bg-white border border-gray-200 hover:bg-blue-600 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-lg hover:shadow-blue-600/25 group">
+              <a href="https://www.facebook.com/people/Renovi-Indonesia/61577616446930/" 
+              target="_blank"
+              className="w-10 h-10 bg-white border border-gray-200 hover:bg-blue-600 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-lg hover:shadow-blue-600/25 group">
                 <Facebook className="w-5 h-5 text-gray-600 group-hover:text-white" />
               </a>
-              <a href="#" className="w-10 h-10 bg-white border border-gray-200 hover:bg-blue-600 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-lg hover:shadow-blue-600/25 group">
+              <a href="https://www.instagram.com/renovi.indonesia" 
+              target="_blank"
+              className="w-10 h-10 bg-white border border-gray-200 hover:bg-blue-600 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-lg hover:shadow-blue-600/25 group">
                 <Instagram className="w-5 h-5 text-gray-600 group-hover:text-white" />
-              </a>
-              <a href="#" className="w-10 h-10 bg-white border border-gray-200 hover:bg-blue-600 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-lg hover:shadow-blue-600/25 group">
-                <Twitter className="w-5 h-5 text-gray-600 group-hover:text-white" />
               </a>
             </div>
           </div>

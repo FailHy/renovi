@@ -24,7 +24,16 @@ const proyekSchema = z.object({
   mandorId: z.string().optional(),
   deskripsi: z.string().min(1, 'Deskripsi harus diisi'),
   alamat: z.string().min(1, 'Alamat harus diisi'),
-  telpon: z.string().optional(),
+  telpon: z.string().optional()
+    .refine((val) => !val || /^\d+$/.test(val), {
+      message: 'Nomor telepon hanya boleh berisi angka',
+    })
+    .refine((val) => !val || val.length >= 11, {
+      message: 'Nomor telepon minimal 11 digit',
+    })
+    .refine((val) => !val || val.length <= 15, {
+      message: 'Nomor telepon maksimal 15 digit',
+    }),
   mulai: z.string().min(1, 'Tanggal mulai harus diisi'),
   status: z.string().min(1, 'Status harus dipilih'),
 })
@@ -448,10 +457,17 @@ export default function ManajemenProyekPage() {
                   Nomor Telepon
                 </label>
                 <Input
+                  type="tel"
                   placeholder="08xxxxxxxxxx"
+                  title='masukkan minimal 11 digit'
                   error={errors.telpon?.message}
                   className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
                   {...register('telpon')}
+                  onInput={(e)=> //only allow number cuy
+                    {
+                      e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, '')
+                    }
+                  }
                 />
               </div>
 
