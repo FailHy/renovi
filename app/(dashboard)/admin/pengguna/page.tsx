@@ -9,7 +9,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Badge } from '@/components/ui/Badge'
 import { Card } from '@/components/ui/Card'
 import { DashboardHeader } from '@/components/dashboard/Sidebar'
-import { createUser, updateUser, deleteUser, getUsers } from '@/lib/actions/user'
+import { createUser, updateUser, deleteUser, getUsers } from '@/lib/actions/admin/user'
 
 // Type untuk UI - sesuaikan dengan data dari database
 type User = {

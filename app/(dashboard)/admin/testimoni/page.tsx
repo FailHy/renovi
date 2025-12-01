@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Modal } from '@/components/ui/Modal'
 import { DashboardHeader } from '@/components/dashboard/Sidebar'
-import { approveTestimoni, rejectTestimoni } from '@/lib/actions/testimoni'
+import { approveTestimoni, rejectTestimoni } from '@/lib/actions/admin/testimoni'
 import { formatDate } from '@/lib/utils'
 
 // ✅ Type Definition

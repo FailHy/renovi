@@ -9,7 +9,7 @@ import { Modal } from '@/components/ui/Modal'
 import { DashboardHeader } from '@/components/dashboard/Sidebar'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
-import { publishPortfolio } from '@/lib/actions/portfolio'
+import { publishPortfolio } from '@/lib/actions/admin/portfolio'
 import { formatDate, cn } from '@/lib/utils'
 import Link from 'next/link'
 

@@ -13,7 +13,7 @@ import { DashboardHeader } from '@/components/dashboard/Sidebar'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { createProyek, updateProyek, deleteProyek, getAllProyeks, getPelangganOptions, getMandorOptions } from '@/lib/actions/proyek'
+import { createProyek, updateProyek, deleteProyek, getAllProyeks, getPelangganOptions, getMandorOptions } from '@/lib/actions/admin/proyek'
 import { TIPE_LAYANAN, PROJECT_STATUS } from '@/lib/constants'
 import { formatDate, cn } from '@/lib/utils'
 

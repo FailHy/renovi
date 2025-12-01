@@ -41,7 +41,7 @@ export default function Footer() {
               </a>
               <a href="https://www.instagram.com/renovi.indonesia" 
               target="_blank"
-              className="w-10 h-10 bg-white border border-gray-200 hover:bg-blue-600 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-lg hover:shadow-blue-600/25 group">
+               className="w-10 h-10 bg-white border border-gray-200 hover:bg-blue-600 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-lg hover:shadow-blue-600/25 group">
                 <Instagram className="w-5 h-5 text-gray-600 group-hover:text-white" />
               </a>
             </div>

@@ -20,7 +20,7 @@ import {
   updateArtikel, 
   deleteArtikel, 
   getKategoriOptions 
-} from '@/lib/actions/artikel'
+} from '@/lib/actions/admin/artikel'
 
 const artikelSchema = z.object({
   judul: z.string().min(1, 'Judul harus diisi'),
