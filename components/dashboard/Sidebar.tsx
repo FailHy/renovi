@@ -105,28 +105,28 @@ export function Sidebar({ role, userName }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 h-full bg-card border-r border-border transition-all duration-300 z-40',
+        'fixed left-0 top-0 h-full bg-white border-r border-gray-200 transition-all duration-300 z-40',
         isCollapsed ? 'w-20' : 'w-64'
       )}
     >
       {/* Header */}
       <div className={cn(
-        "h-16 flex items-center justify-between px-4 border-b border-border",
+        "h-16 flex items-center justify-between px-4 border-b border-gray-200",
         isCollapsed && "justify-center"
       )}>
         {!isCollapsed && (
           <Link href="/" className="flex items-center gap-2">
-            <span className="font-bold text-lg text-foreground">Renovi</span>
+            <span className="font-bold text-lg text-gray-900">Renovi</span>
           </Link>
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1.5 hover:bg-accent rounded-lg transition-colors"
+          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <ChevronLeft
             className={cn(
-              'w-5 h-5 transition-transform',
+              'w-5 h-5 transition-transform text-gray-600',
               isCollapsed && 'rotate-180'
             )}
           />
@@ -134,20 +134,20 @@ export function Sidebar({ role, userName }: SidebarProps) {
       </div>
 
       {/* User Info */}
-      <div className={cn("p-4 border-b border-border", isCollapsed && "px-2")}>
+      <div className={cn("p-4 border-b border-gray-200", isCollapsed && "px-2")}>
         {!isCollapsed ? (
           <div>
-            <p className="font-semibold text-foreground truncate">{userName}</p>
-            <p className="text-sm text-muted-foreground capitalize">
+            <p className="font-semibold text-gray-900 truncate">{userName}</p>
+            <p className="text-sm text-gray-500 capitalize">
               {role}
             </p>
           </div>
         ) : (
           <div 
-            className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto"
+            className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto"
             title={userName}
           >
-            <Users className="w-5 h-5 text-primary" />
+            <Users className="w-5 h-5 text-blue-600" />
           </div>
         )}
       </div>
@@ -165,8 +165,8 @@ export function Sidebar({ role, userName }: SidebarProps) {
                   className={cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
                     isActive
-                      ? 'bg-primary/10 text-primary font-medium'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                      ? 'bg-blue-50 text-blue-700 font-medium border border-blue-200'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   )}
                   title={isCollapsed ? item.label : undefined}
                 >
@@ -182,10 +182,10 @@ export function Sidebar({ role, userName }: SidebarProps) {
       </nav>
 
       {/* Logout Button */}
-      <div className={cn("p-4 border-t border-border", isCollapsed && "px-2")}>
+      <div className={cn("p-4 border-t border-gray-200", isCollapsed && "px-2")}>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
           title={isCollapsed ? 'Logout' : undefined}
         >
           <LogOut className="w-5 h-5" />
@@ -210,11 +210,11 @@ export function DashboardHeader({ title, description, action }: DashboardHeaderP
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
       <div className="flex-1">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
           {title}
         </h1>
         {description && (
-          <p className="text-muted-foreground mt-1">
+          <p className="text-gray-600 mt-1">
             {description}
           </p>
         )}

@@ -1,20 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 interface HeaderDashboardProps {
   title: string;
   description?: string;
+  action?: React.ReactNode;
 }
 
-export function HeaderDashboard({ title, description }: HeaderDashboardProps) {
-  const [now, setNow] = useState(new Date());
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
+export function HeaderDashboard({ title, description, action }: HeaderDashboardProps) {
+  // Static date - tidak menyebabkan hydration error
+  const now = new Date();
+  
   const hari = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
   const bulan = [
     "Januari","Februari","Maret","April","Mei","Juni",
@@ -26,28 +21,91 @@ export function HeaderDashboard({ title, description }: HeaderDashboardProps) {
   const namaBulan = bulan[now.getMonth()];
   const tahun = now.getFullYear();
 
+  // Format waktu tanpa detik untuk mengurangi perbedaan
   const jam = now.toLocaleTimeString("id-ID", {
     hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit"
+    minute: "2-digit"
+    // Hilangkan second untuk mengurangi kemungkinan mismatch
   });
 
   return (
-    <div className="flex items-start justify-between mb-">
+    <div className="flex items-start justify-between mb-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">{title}</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
         {description && (
-          <p className="text-muted-foreground">{description}</p>
+          <p className="text-gray-600 mt-2">{description}</p>
         )}
       </div>
 
-      {/* TANGGAL & JAM */}
-      <div className="text-right">
-        <p className="font-semibold text-foreground">
-          {namaHari}, {tanggal} {namaBulan} {tahun}
-        </p>
-        <p className="text-sm text-muted-foreground">{jam}</p>
+      <div className="flex items-center gap-4">
+        {/* TANGGAL & JAM - Static */}
+        <div className="text-right">
+          <p className="font-semibold text-gray-900">
+            {namaHari}, {tanggal} {namaBulan} {tahun}
+          </p>
+          <p className="text-sm text-gray-600">{jam}</p>
+        </div>
+
+        {/* ACTION BUTTONS */}
+        {action && (
+          <div className="flex-shrink-0">
+            {action}
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+// ... (specific headers tetap sama)
+
+// Specific headers untuk setiap modul - TAMBAHKAN ACTION PROP
+export function HeaderManajemenPengguna({ action }: { action?: React.ReactNode }) {
+  return (
+    <HeaderDashboard 
+      title="Manajemen Pengguna"
+      description="Kelola data pengguna, role, dan akses sistem"
+      action={action}
+    />
+  );
+}
+
+export function HeaderManajemenArtikel({ action }: { action?: React.ReactNode }) {
+  return (
+    <HeaderDashboard 
+      title="Manajemen Artikel"
+      description="Kelola konten artikel dan postingan blog"
+      action={action}
+    />
+  );
+}
+
+export function HeaderManajemenPortfolio({ action }: { action?: React.ReactNode }) {
+  return (
+    <HeaderDashboard 
+      title="Manajemen Portfolio"
+      description="Kelola project portfolio dan karya"
+      action={action}
+    />
+  );
+}
+
+export function HeaderManajemenTestimoni({ action }: { action?: React.ReactNode }) {
+  return (
+    <HeaderDashboard 
+      title="Manajemen Testimoni"
+      description="Kelola testimoni dan review dari klien"
+      action={action}
+    />
+  );
+}
+
+export function HeaderManajemenProyek({ action }: { action?: React.ReactNode }) {
+  return (
+    <HeaderDashboard 
+      title="Manajemen Proyek"
+      description="Pantau dan kelala progress proyek yang sedang berjalan"
+      action={action}
+    />
   );
 }

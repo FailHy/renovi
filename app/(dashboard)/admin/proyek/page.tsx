@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/TextArea'
 import { Modal } from '@/components/ui/Modal'
 import { Badge } from '@/components/ui/Badge'
 import { Card } from '@/components/ui/Card'
-import { DashboardHeader } from '@/components/dashboard/Sidebar'
+import { HeaderManajemenProyek } from '@/components/dashboard/HeaderDashboard'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -213,9 +213,8 @@ export default function ManajemenProyekPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardHeader
-        title="Manajemen Proyek"
-        description="Kelola semua proyek renovasi dan konstruksi"
+      {/* bagian proyek */}
+      <HeaderManajemenProyek 
         action={
           <Button 
             onClick={() => handleOpenModal()} 

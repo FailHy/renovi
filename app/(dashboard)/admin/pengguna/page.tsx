@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
 import { Badge } from '@/components/ui/Badge'
 import { Card } from '@/components/ui/Card'
-import { DashboardHeader } from '@/components/dashboard/Sidebar'
+import { HeaderManajemenPengguna } from '@/components/dashboard/HeaderDashboard'
 import { createUser, updateUser, deleteUser, getUsers } from '@/lib/actions/admin/user'
 
 // Type untuk UI - sesuaikan dengan data dari database
@@ -180,17 +180,16 @@ export default function ManajemenPenggunaPage() {
 
   return (
     <div className="space-y-6">
-      <DashboardHeader
-        title="Manajemen Pengguna"
-        description="Kelola semua pengguna sistem Renovi"
+      {/* bagian manajemen pengguna */}
+      <HeaderManajemenPengguna 
         action={
-        <Button 
-          onClick={() => handleOpenModal()}
-          className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 text-white shadow-lg hover:shadow-xl transition-all duration-300 group flex items-center gap-2 px-6 py-3 rounded-xl font-semibold"
-        >
-          <Plus className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" />
-          <span>Tambah Pengguna</span>
-        </Button>
+          <Button 
+            onClick={handleOpenModal}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 group flex items-center gap-2 px-6 py-3 rounded-xl font-semibold"
+          >
+            <Plus className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" />
+            <span>Tambah Pengguna</span>
+          </Button>
         }
       />
 

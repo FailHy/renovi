@@ -9,7 +9,7 @@ import { Select } from '@/components/ui/Select'
 import { Modal } from '@/components/ui/Modal'
 import { Badge } from '@/components/ui/Badge'
 import { Card, CardContent } from '@/components/ui/Card'
-import { DashboardHeader } from '@/components/dashboard/Sidebar'
+import { HeaderManajemenArtikel } from '@/components/dashboard/HeaderDashboard'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -292,20 +292,18 @@ export default function ManajemenArtikelPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header Section */}
-      <DashboardHeader
-        title="Manajemen Artikel"
-        description="Kelola artikel dan konten blog Renovi"
-        action={
-          <Button 
-            onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm px-4 py-2.5 rounded-lg font-medium transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Tambah Artikel
-          </Button>
-        }
-      />
+      {/* Header Section artikel */}
+      <HeaderManajemenArtikel 
+              action={
+                <Button 
+                  onClick={() => handleOpenModal()}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm px-4 py-2.5 rounded-lg font-medium transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Tambah Artikel
+                </Button>
+              }
+            />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">

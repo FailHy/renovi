@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Modal } from '@/components/ui/Modal'
-import { DashboardHeader } from '@/components/dashboard/Sidebar'
+import { HeaderManajemenTestimoni } from '@/components/dashboard/HeaderDashboard'
 import { approveTestimoni, rejectTestimoni } from '@/lib/actions/admin/testimoni'
 import { formatDate } from '@/lib/utils'
 
@@ -211,10 +211,8 @@ export default function ManajemenTestimoniPage() {
 
   return (
     <div>
-      <DashboardHeader
-        title="Manajemen Testimoni"
-        description="Kelola dan review testimoni dari klien"
-      />
+      {/* bagian testimoni */}
+       <HeaderManajemenTestimoni />
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">

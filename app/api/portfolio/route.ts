@@ -1,18 +1,15 @@
-// FILE: lib/actions/portfolio.ts
-'use server'
-
-import { revalidatePath } from 'next/cache'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { portfolios, projeks, users } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
-export async function getPortfolios() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session || session.user.role !== 'admin') {
-      return { success: false, error: 'Unauthorized' }
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
     const portfoliosData = await db
@@ -34,7 +31,7 @@ export async function getPortfolios() {
           nama: projeks.nama,
           status: projeks.status,
           pelanggan: {
-            nama: users.nama
+            name: users.nama
           }
         }
       })
@@ -43,31 +40,15 @@ export async function getPortfolios() {
       .leftJoin(users, eq(projeks.pelangganId, users.id))
       .orderBy(desc(portfolios.createdAt))
 
-    return { success: true, data: portfoliosData }
+    return NextResponse.json({ 
+      success: true, 
+      data: portfoliosData 
+    })
   } catch (error) {
     console.error('Error fetching portfolios:', error)
-    return { success: false, error: 'Gagal memuat data portfolio' }
-  }
-}
-
-export async function publishPortfolio(id: string, published: boolean) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session || session.user.role !== 'admin') {
-      return { success: false, error: 'Unauthorized' }
-    }
-
-    const [portfolio] = await db
-      .update(portfolios)
-      .set({ published, updatedAt: new Date() })
-      .where(eq(portfolios.id, id))
-      .returning()
-
-    revalidatePath('/admin/portfolio')
-    revalidatePath('/portfolio')
-    return { success: true, data: portfolio }
-  } catch (error) {
-    console.error('Error publishing portfolio:', error)
-    return { success: false, error: 'Gagal mengubah status portfolio' }
+    return NextResponse.json(
+      { success: false, error: 'Gagal memuat data portfolio' },
+      { status: 500 }
+    )
   }
 }
