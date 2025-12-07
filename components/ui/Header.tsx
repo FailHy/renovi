@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { Building2, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import Image from 'next/image'
 
 const navigation = [
   { name: 'Home', href: '/' },
@@ -24,10 +25,17 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200">
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
+{/* Logo */}
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
-              <Building2 className="w-6 h-6 text-white" />
+            {/* Tambahkan 'overflow-hidden' agar gambar mengikuti rounded-xl */}
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-500 rounded-xl flex items-center justify-center shadow-lg overflow-hidden relative">
+              <Image 
+                src="/renovi.jpg" 
+                alt="Logo Renovi" 
+                width={40} // Sesuai dengan w-10 (40px)
+                height={40} // Sesuai dengan h-10 (40px)
+                className="object-cover" // Agar gambar mengisi kotak dengan rapi
+              />
             </div>
             <div>
               <span className="text-2xl font-bold text-gray-900">
