@@ -1,4 +1,4 @@
-// FILE: lib/actions/mandor/bahan.ts - UPDATED FOR SIMPLIFIED SCHEMA
+// FILE: lib/actions/mandor/bahan.ts - COMPLETE CRUD
 'use server'
 
 import { db } from '@/lib/db'
@@ -13,9 +13,123 @@ import {
 import { eq, and, desc, sql } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 
+// Type definitions
+interface CreateBahanInput {
+  notaId: string
+  proyekId: string
+  nama: string
+  deskripsi?: string
+  harga: number
+  kuantitas: number
+  satuan: string
+  kategori?: string
+  status?: string
+  gambar?: string[]
+  milestoneId?: string
+}
+
+interface UpdateBahanInput {
+  nama?: string
+  deskripsi?: string
+  harga?: number
+  kuantitas?: number
+  satuan?: string
+  kategori?: string
+  status?: string
+  gambar?: string[]
+  milestoneId?: string | null
+}
+
 /**
- * Get all bahan for a project with complete nota information
- * This is the main function used by BahanHarianTab
+ * CREATE: Create new bahan item
+ */
+export async function createBahanItem(input: CreateBahanInput) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.id) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    const mandorId = session.user.id
+
+    // Verify project belongs to mandor
+    const project = await db.query.projeks.findFirst({
+      where: and(
+        eq(projeks.id, input.proyekId),
+        eq(projeks.mandorId, mandorId)
+      )
+    })
+
+    if (!project) {
+      return { success: false, error: 'Project not found or unauthorized' }
+    }
+
+    // Verify nota belongs to project
+    const nota = await db.query.notaBelanjas.findFirst({
+      where: and(
+        eq(notaBelanjas.id, input.notaId),
+        eq(notaBelanjas.proyekId, input.proyekId)
+      )
+    })
+
+    if (!nota) {
+      return { success: false, error: 'Nota not found or does not belong to this project' }
+    }
+
+    // Verify milestone belongs to project (if provided)
+    if (input.milestoneId) {
+      const milestone = await db.query.milestones.findFirst({
+        where: and(
+          eq(milestones.id, input.milestoneId),
+          eq(milestones.proyekId, input.proyekId)
+        )
+      })
+
+      if (!milestone) {
+        return { success: false, error: 'Milestone not found or does not belong to this project' }
+      }
+    }
+
+    // Create bahan
+    const [newBahan] = await db
+      .insert(bahanHarians)
+      .values({
+        nama: input.nama,
+        deskripsi: input.deskripsi || '',
+        harga: input.harga.toString(),
+        kuantitas: input.kuantitas.toString(),
+        satuan: input.satuan,
+        kategori: input.kategori || null,
+        status: input.status || 'Digunakan',
+        gambar: input.gambar || [],
+        notaId: input.notaId,
+        proyekId: input.proyekId,
+        milestoneId: input.milestoneId || null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning()
+
+    revalidatePath(`/mandor/proyek/${input.proyekId}`)
+    revalidatePath(`/mandor/nota/${input.notaId}`)
+    
+    return { 
+      success: true, 
+      data: newBahan,
+      message: 'Bahan berhasil ditambahkan' 
+    }
+  } catch (error: any) {
+    console.error('Error creating bahan:', error)
+    return { 
+      success: false, 
+      error: error.message || 'Gagal menambahkan bahan' 
+    }
+  }
+}
+
+/**
+ * READ: Get all bahan for a project with complete nota information
  */
 export async function getBahanByProject(proyekId: string, mandorId: string) {
   try {
@@ -51,6 +165,8 @@ export async function getBahanByProject(proyekId: string, mandorId: string) {
         gambar: bahanHarians.gambar,
         createdAt: bahanHarians.createdAt,
         notaId: bahanHarians.notaId,
+        proyekId: bahanHarians.proyekId,
+        milestoneId: bahanHarians.milestoneId,
         // Nota information
         nota: sql<{
           id: string
@@ -92,7 +208,7 @@ export async function getBahanByProject(proyekId: string, mandorId: string) {
 }
 
 /**
- * Get bahan masuk (legacy function name for backward compatibility)
+ * READ: Get bahan masuk (legacy function name for backward compatibility)
  */
 export async function getBahanMasukByProyek(proyekId: string) {
   const session = await getServerSession(authOptions)
@@ -105,13 +221,107 @@ export async function getBahanMasukByProyek(proyekId: string) {
 }
 
 /**
- * Update bahan status
- * Allows changing status of existing bahan (e.g., Digunakan -> Sisa)
+ * READ: Get bahan by ID with complete information
  */
-export async function updateBahanStatus(
-  bahanId: string,
-  status: 'Digunakan' | 'Sisa' | 'Rusak'
-) {
+export async function getBahanById(bahanId: string) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.id) {
+      return { success: false, error: 'Unauthorized', data: null }
+    }
+
+    const bahan = await db.query.bahanHarians.findFirst({
+      where: eq(bahanHarians.id, bahanId),
+      with: {
+        nota: true,
+        projek: true,
+        milestone: true
+      }
+    })
+
+    if (!bahan) {
+      return { success: false, error: 'Bahan tidak ditemukan', data: null }
+    }
+
+    // Check authorization
+    if (bahan.projek.mandorId !== session.user.id) {
+      return { success: false, error: 'Unauthorized', data: null }
+    }
+
+    return { success: true, data: bahan }
+  } catch (error) {
+    console.error('Error fetching bahan by id:', error)
+    return { success: false, error: 'Gagal memuat data bahan', data: null }
+  }
+}
+
+/**
+ * READ: Get bahan by nota ID
+ * Useful for getting all items in a specific nota
+ */
+export async function getBahanByNotaId(notaId: string) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.id) {
+      return { success: false, error: 'Unauthorized', data: [] }
+    }
+
+    // Verify nota belongs to mandor
+    const nota = await db.query.notaBelanjas.findFirst({
+      where: eq(notaBelanjas.id, notaId),
+      with: {
+        projek: true
+      }
+    })
+
+    if (!nota || nota.projek.mandorId !== session.user.id) {
+      return { success: false, error: 'Unauthorized', data: [] }
+    }
+
+    const bahan = await db
+      .select({
+        id: bahanHarians.id,
+        nama: bahanHarians.nama,
+        deskripsi: bahanHarians.deskripsi,
+        harga: bahanHarians.harga,
+        kuantitas: bahanHarians.kuantitas,
+        satuan: bahanHarians.satuan,
+        kategori: bahanHarians.kategori,
+        status: bahanHarians.status,
+        gambar: bahanHarians.gambar,
+        createdAt: bahanHarians.createdAt,
+        milestoneId: bahanHarians.milestoneId,
+        proyekId: bahanHarians.proyekId,
+        milestone: sql<{
+          id: string
+          nama: string
+        } | null>`CASE 
+          WHEN ${milestones.id} IS NOT NULL THEN
+            jsonb_build_object(
+              'id', ${milestones.id},
+              'nama', ${milestones.nama}
+            )
+          ELSE NULL
+        END`
+      })
+      .from(bahanHarians)
+      .leftJoin(milestones, eq(bahanHarians.milestoneId, milestones.id))
+      .where(eq(bahanHarians.notaId, notaId))
+      .orderBy(bahanHarians.createdAt)
+
+    return { success: true, data: bahan }
+  } catch (error) {
+    console.error('Error fetching bahan by nota:', error)
+    return { success: false, error: 'Gagal memuat bahan dari nota', data: [] }
+  }
+}
+
+/**
+ * UPDATE: Update bahan item
+ */
+export async function updateBahanItem(bahanId: string, updates: UpdateBahanInput) {
   try {
     const session = await getServerSession(authOptions)
     
@@ -130,41 +340,130 @@ export async function updateBahanStatus(
     })
 
     if (!bahan) {
-      return { success: false, error: 'Bahan not found' }
+      return { success: false, error: 'Bahan tidak ditemukan' }
     }
 
     if (bahan.projek.mandorId !== mandorId) {
       return { success: false, error: 'Unauthorized' }
     }
 
-    // Update status
-    const [updated] = await db
+    // Validate milestone if provided
+    if (updates.milestoneId !== undefined) {
+      if (updates.milestoneId) {
+        const milestone = await db.query.milestones.findFirst({
+          where: and(
+            eq(milestones.id, updates.milestoneId),
+            eq(milestones.proyekId, bahan.proyekId)
+          )
+        })
+
+        if (!milestone) {
+          return { success: false, error: 'Milestone not found or does not belong to this project' }
+        }
+      }
+    }
+
+    // Prepare update data
+    const updateData: any = {
+      updatedAt: new Date()
+    }
+
+    if (updates.nama !== undefined) updateData.nama = updates.nama
+    if (updates.deskripsi !== undefined) updateData.deskripsi = updates.deskripsi
+    if (updates.harga !== undefined) updateData.harga = updates.harga.toString()
+    if (updates.kuantitas !== undefined) updateData.kuantitas = updates.kuantitas.toString()
+    if (updates.satuan !== undefined) updateData.satuan = updates.satuan
+    if (updates.kategori !== undefined) updateData.kategori = updates.kategori || null
+    if (updates.status !== undefined) updateData.status = updates.status
+    if (updates.gambar !== undefined) updateData.gambar = updates.gambar
+    if (updates.milestoneId !== undefined) updateData.milestoneId = updates.milestoneId
+
+    // Update bahan
+    const [updatedBahan] = await db
       .update(bahanHarians)
-      .set({ 
-        status,
-        updatedAt: new Date()
-      })
+      .set(updateData)
       .where(eq(bahanHarians.id, bahanId))
       .returning()
 
     revalidatePath(`/mandor/proyek/${bahan.proyekId}`)
+    revalidatePath(`/mandor/nota/${bahan.notaId}`)
     
     return { 
       success: true, 
-      data: updated,
-      message: 'Status bahan berhasil diupdate'
+      data: updatedBahan,
+      message: 'Bahan berhasil diupdate'
     }
   } catch (error: any) {
-    console.error('Error updating bahan status:', error)
+    console.error('Error updating bahan:', error)
     return { 
       success: false, 
-      error: error.message || 'Gagal mengupdate status bahan' 
+      error: error.message || 'Gagal mengupdate bahan' 
     }
   }
 }
 
 /**
- * Get total bahan cost for project
+ * UPDATE: Update bahan status only
+ */
+export async function updateBahanStatus(
+  bahanId: string,
+  status: 'Digunakan' | 'Sisa' | 'Rusak'
+) {
+  return updateBahanItem(bahanId, { status })
+}
+
+/**
+ * DELETE: Delete bahan (with authorization check)
+ */
+export async function deleteBahan(bahanId: string) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.id) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    const mandorId = session.user.id
+
+    // Get bahan with nota and project info
+    const bahan = await db.query.bahanHarians.findFirst({
+      where: eq(bahanHarians.id, bahanId),
+      with: {
+        nota: true,
+        projek: true
+      }
+    })
+
+    if (!bahan) {
+      return { success: false, error: 'Bahan tidak ditemukan' }
+    }
+
+    if (bahan.projek.mandorId !== mandorId) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    await db
+      .delete(bahanHarians)
+      .where(eq(bahanHarians.id, bahanId))
+
+    revalidatePath(`/mandor/proyek/${bahan.proyekId}`)
+    revalidatePath(`/mandor/nota/${bahan.notaId}`)
+    
+    return { 
+      success: true, 
+      message: 'Bahan berhasil dihapus' 
+    }
+  } catch (error: any) {
+    console.error('Error deleting bahan:', error)
+    return { 
+      success: false, 
+      error: error.message || 'Gagal menghapus bahan' 
+    }
+  }
+}
+
+/**
+ * STATISTICS: Get total bahan cost for project
  */
 export async function getTotalBahanCost(proyekId: string) {
   try {
@@ -183,7 +482,7 @@ export async function getTotalBahanCost(proyekId: string) {
 }
 
 /**
- * Get bahan summary statistics
+ * STATISTICS: Get bahan summary statistics
  */
 export async function getBahanSummary(proyekId: string) {
   try {
@@ -249,7 +548,7 @@ export async function getBahanSummary(proyekId: string) {
 }
 
 /**
- * Get bahan grouped by nota
+ * GROUPING: Get bahan grouped by nota
  * Returns notas with their items and totals
  */
 export async function getBahanGroupedByNota(proyekId: string) {
@@ -279,7 +578,9 @@ export async function getBahanGroupedByNota(proyekId: string) {
             'satuan', ${bahanHarians.satuan},
             'kategori', ${bahanHarians.kategori},
             'status', ${bahanHarians.status},
-            'gambar', ${bahanHarians.gambar}
+            'gambar', ${bahanHarians.gambar},
+            'createdAt', ${bahanHarians.createdAt},
+            'milestoneId', ${bahanHarians.milestoneId}
           ) ORDER BY ${bahanHarians.createdAt}
         )`
       })
@@ -303,57 +604,9 @@ export async function getBahanGroupedByNota(proyekId: string) {
 }
 
 /**
- * Get bahan by nota ID
- * Useful for getting all items in a specific nota
+ * BATCH OPERATIONS: Delete multiple bahan items
  */
-export async function getBahanByNota(notaId: string) {
-  try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return { success: false, error: 'Unauthorized', data: [] }
-    }
-
-    const bahan = await db
-      .select({
-        id: bahanHarians.id,
-        nama: bahanHarians.nama,
-        deskripsi: bahanHarians.deskripsi,
-        harga: bahanHarians.harga,
-        kuantitas: bahanHarians.kuantitas,
-        satuan: bahanHarians.satuan,
-        kategori: bahanHarians.kategori,
-        status: bahanHarians.status,
-        gambar: bahanHarians.gambar,
-        createdAt: bahanHarians.createdAt,
-        milestone: sql<{
-          id: string
-          nama: string
-        } | null>`CASE 
-          WHEN ${milestones.id} IS NOT NULL THEN
-            jsonb_build_object(
-              'id', ${milestones.id},
-              'nama', ${milestones.nama}
-            )
-          ELSE NULL
-        END`
-      })
-      .from(bahanHarians)
-      .leftJoin(milestones, eq(bahanHarians.milestoneId, milestones.id))
-      .where(eq(bahanHarians.notaId, notaId))
-      .orderBy(bahanHarians.createdAt)
-
-    return { success: true, data: bahan }
-  } catch (error) {
-    console.error('Error fetching bahan by nota:', error)
-    return { success: false, error: 'Gagal memuat bahan dari nota', data: [] }
-  }
-}
-
-/**
- * Delete bahan (with authorization check)
- */
-export async function deleteBahan(bahanId: string) {
+export async function deleteMultipleBahan(bahanIds: string[]) {
   try {
     const session = await getServerSession(authOptions)
     
@@ -363,35 +616,41 @@ export async function deleteBahan(bahanId: string) {
 
     const mandorId = session.user.id
 
-    // Get bahan with nota and project info
-    const bahan = await db.query.bahanHarians.findFirst({
-      where: eq(bahanHarians.id, bahanId),
+    // Verify all bahan belong to mandor
+    const bahanList = await db.query.bahanHarians.findMany({
+      where: (bahanHarians, { inArray }) => inArray(bahanHarians.id, bahanIds),
       with: {
-        nota: true,
         projek: true
       }
     })
 
-    if (!bahan) {
-      return { success: false, error: 'Bahan tidak ditemukan' }
-    }
-
-    if (bahan.projek.mandorId !== mandorId) {
+    const unauthorized = bahanList.some(bahan => bahan.projek.mandorId !== mandorId)
+    if (unauthorized) {
       return { success: false, error: 'Unauthorized' }
     }
 
+    // Get project ID for revalidation
+    const proyekId = bahanList[0]?.proyekId
+    const notaId = bahanList[0]?.notaId
+
+    // Delete all bahan
     await db
       .delete(bahanHarians)
-      .where(eq(bahanHarians.id, bahanId))
+      .where((bahanHarians, { inArray }) => inArray(bahanHarians.id, bahanIds))
 
-    revalidatePath(`/mandor/proyek/${bahan.proyekId}`)
+    if (proyekId) {
+      revalidatePath(`/mandor/proyek/${proyekId}`)
+    }
+    if (notaId) {
+      revalidatePath(`/mandor/nota/${notaId}`)
+    }
     
     return { 
       success: true, 
-      message: 'Bahan berhasil dihapus' 
+      message: `${bahanIds.length} bahan berhasil dihapus` 
     }
   } catch (error: any) {
-    console.error('Error deleting bahan:', error)
+    console.error('Error deleting multiple bahan:', error)
     return { 
       success: false, 
       error: error.message || 'Gagal menghapus bahan' 

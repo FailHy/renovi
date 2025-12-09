@@ -13,7 +13,7 @@ export interface Milestone {
   nama: string
   deskripsi: string | null  // ✅ Allow null
   tanggal: string
-  status: 'Belum Dimulai' | 'Dalam Progress' | 'Selesai'
+  status: 'Dibatalkan' | 'Belum Dimulai' | 'Dalam Progress' | 'Selesai'
   gambar: string[] | null   // ✅ Allow null
   mulai: Date | null
   selesai: Date | null

@@ -18,11 +18,11 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 
 interface SidebarProps {
   role: 'admin' | 'mandor' | 'pelanggan'
   userName: string
-  userEmail?: string
   isMobileMenuOpen?: boolean
   onMobileMenuClose?: () => void
   isCollapsed?: boolean
@@ -96,7 +96,6 @@ const menuItems = {
 export function Sidebar({ 
   role, 
   userName, 
-  userEmail,
   isMobileMenuOpen = false,
   onMobileMenuClose,
   isCollapsed = false,
@@ -185,12 +184,18 @@ export function Sidebar({
         )}>
           {!isCollapsed ? (
             <Link 
-              href="/" 
+              href="" 
               className="flex items-center gap-2 group"
               onClick={handleNavClick}
             >
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Home className="w-4 h-4 text-white" />
+                <Image 
+                src="/renovi.jpg" 
+                alt="Logo Renovi" 
+                width={40} // Sesuai dengan w-10 (40px)
+                height={40} // Sesuai dengan h-10 (40px)
+                className="object-cover rounded rounded-xxl" // Agar gambar mengisi kotak dengan rapi
+              />
               </div>
               <span className="font-bold text-lg text-slate-900 group-hover:text-blue-600 transition-colors">
                 Renovi
@@ -198,12 +203,18 @@ export function Sidebar({
             </Link>
           ) : (
             <Link 
-              href="/" 
+              href="" 
               className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors"
               onClick={handleNavClick}
               title="Renovi"
             >
-              <Home className="w-4 h-4 text-white" />
+              <Image 
+                src="/renovi.jpg" 
+                alt="Logo Renovi" 
+                width={40} // Sesuai dengan w-10 (40px)
+                height={40} // Sesuai dengan h-10 (40px)
+                className="object-cover rounded rounded-xxl" // Agar gambar mengisi kotak dengan rapi
+              />
             </Link>
           )}
           
@@ -248,11 +259,6 @@ export function Sidebar({
                     {role}
                   </span>
                 </div>
-                {userEmail && (
-                  <p className="text-xs text-slate-500 truncate mt-0.5">
-                    {userEmail}
-                  </p>
-                )}
               </div>
             </div>
           ) : (

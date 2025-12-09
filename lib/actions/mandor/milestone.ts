@@ -144,6 +144,67 @@ export async function createMilestone(data: {
   }
 }
 
+async function updateProjectProgress(proyekId: string) {
+  // 1. Ambil semua milestone
+  const projectMilestones = await db.query.milestones.findMany({
+    where: eq(milestones.proyekId, proyekId),
+  })
+
+  if (projectMilestones.length === 0) return
+
+  // 2. Hitung Statistik
+  const total = projectMilestones.length
+  const cancelled = projectMilestones.filter(m => m.status === 'Dibatalkan').length
+  const completed = projectMilestones.filter(m => m.status === 'Selesai').length
+  const inProgress = projectMilestones.filter(m => m.status === 'Dalam Progress').length
+
+  // 3. Hitung Progress % (Effective Total = Total - Cancelled)
+  const effectiveTotal = total - cancelled
+  let progress = 0
+  
+  if (effectiveTotal > 0) {
+    progress = Math.round((completed / effectiveTotal) * 100)
+  } else if (total > 0 && effectiveTotal === 0) {
+    // Kasus khusus: Semua milestone dibatalkan
+    progress = 0 
+  }
+
+  // 4. Tentukan Status Proyek
+  let newStatus: 'Perencanaan' | 'Dalam Progress' | 'Selesai' | 'Dibatalkan' = 'Dalam Progress'
+
+  if (effectiveTotal > 0 && completed === effectiveTotal) {
+    // Jika semua yang aktif sudah selesai
+    newStatus = 'Selesai'
+  } else if (cancelled === total) {
+    // Jika semua dibatalkan
+    newStatus = 'Dibatalkan'
+  } else if (completed === 0 && inProgress === 0) {
+    // Jika belum ada yang mulai (dan masih ada yang aktif)
+    newStatus = 'Perencanaan'
+  } else {
+    // Campuran
+    newStatus = 'Dalam Progress'
+  }
+
+  // 5. Update Database
+  const updateData: any = {
+    progress,
+    status: newStatus,
+    lastUpdate: new Date(),
+    updatedAt: new Date(),
+  }
+
+  // Auto set tanggal selesai jika status jadi Selesai
+  if (newStatus === 'Selesai') {
+    updateData.selesai = new Date()
+  }
+
+  await db
+    .update(projeks)
+    .set(updateData)
+    .where(eq(projeks.id, proyekId))
+}
+
 /**
  * Update Milestone - IMPROVED VERSION
  */
