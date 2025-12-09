@@ -11,7 +11,6 @@ import { revalidatePath } from 'next/cache'
 
 /**
  * Get Milestones by Project ID
- * Only returns milestones if project belongs to the logged-in mandor
  */
 export async function getMilestonesByProjectId(projectId: string) {
   try {
@@ -64,14 +63,12 @@ export async function getMilestonesByProjectId(projectId: string) {
 
 /**
  * Create Milestone
- * Creates a new milestone for a project (with optional photo upload)
  */
 export async function createMilestone(data: {
   proyekId: string
   nama: string
   deskripsi: string
   tanggal: string
-  status?: 'Belum Dimulai' | 'Dalam Progress' | 'Selesai'
   gambar?: string[]
 }) {
   try {
@@ -101,14 +98,22 @@ export async function createMilestone(data: {
       }
     }
 
+    // Parse tanggal dengan benar
+    const tanggal = new Date(data.tanggal)
+    if (isNaN(tanggal.getTime())) {
+      return {
+        success: false,
+        error: 'Tanggal tidak valid'
+      }
+    }
+
     // Create milestone
     const newMilestone = await db.insert(milestones)
       .values({
         proyekId: data.proyekId,
-        nama: data.nama,
-        deskripsi: data.deskripsi,
-        tanggal: new Date(data.tanggal),
-        status: data.status || 'Belum Dimulai',
+        nama: data.nama.trim(),
+        deskripsi: data.deskripsi.trim(),
+        tanggal: tanggal,
         gambar: data.gambar || [],
         createdAt: new Date(),
         updatedAt: new Date()
@@ -140,8 +145,7 @@ export async function createMilestone(data: {
 }
 
 /**
- * Update Milestone
- * Updates milestone details
+ * Update Milestone - IMPROVED VERSION
  */
 export async function updateMilestone(
   milestoneId: string,
@@ -149,7 +153,6 @@ export async function updateMilestone(
     nama?: string
     deskripsi?: string
     tanggal?: string
-    status?: 'Belum Dimulai' | 'Dalam Progress' | 'Selesai'
     gambar?: string[]
   }
 ) {
@@ -193,23 +196,29 @@ export async function updateMilestone(
       updatedAt: new Date()
     }
 
-    if (data.nama !== undefined) updateData.nama = data.nama
-    if (data.deskripsi !== undefined) updateData.deskripsi = data.deskripsi
-    if (data.tanggal !== undefined) updateData.tanggal = new Date(data.tanggal)
-    if (data.status !== undefined) {
-      updateData.status = data.status
-      
-      // Set dates based on status
-      if (data.status === 'Dalam Progress' && !milestone.mulai) {
-        updateData.mulai = new Date()
-      } else if (data.status === 'Selesai') {
-        updateData.selesai = new Date()
-        if (!milestone.mulai) {
-          updateData.mulai = new Date()
+    // Handle each field update properly
+    if (data.nama !== undefined) {
+      updateData.nama = data.nama.trim()
+    }
+    
+    if (data.deskripsi !== undefined) {
+      updateData.deskripsi = data.deskripsi.trim()
+    }
+    
+    if (data.tanggal !== undefined) {
+      const tanggal = new Date(data.tanggal)
+      if (isNaN(tanggal.getTime())) {
+        return {
+          success: false,
+          error: 'Tanggal tidak valid'
         }
       }
+      updateData.tanggal = tanggal
     }
-    if (data.gambar !== undefined) updateData.gambar = data.gambar
+    
+    if (data.gambar !== undefined) {
+      updateData.gambar = data.gambar
+    }
 
     // Update milestone
     const updated = await db.update(milestones)
@@ -230,7 +239,8 @@ export async function updateMilestone(
 
     return {
       success: true,
-      data: updated[0]
+      data: updated[0],
+      message: 'Milestone berhasil diupdate'
     }
   } catch (error) {
     console.error('Error updating milestone:', error)
@@ -242,8 +252,129 @@ export async function updateMilestone(
 }
 
 /**
+ * NEW: Update Milestone using FormData (for client forms)
+ */
+export async function updateMilestoneForm(formData: FormData) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.id) {
+      return { 
+        success: false, 
+        error: 'Unauthorized'
+      }
+    }
+
+    const milestoneId = formData.get('id') as string
+    const nama = formData.get('nama') as string
+    const deskripsi = formData.get('deskripsi') as string
+    const tanggal = formData.get('tanggal') as string
+
+    // Validation
+    if (!milestoneId) {
+      return {
+        success: false,
+        error: 'Milestone ID tidak ditemukan'
+      }
+    }
+
+    if (!nama?.trim()) {
+      return {
+        success: false,
+        error: 'Nama milestone harus diisi'
+      }
+    }
+
+    if (!deskripsi?.trim()) {
+      return {
+        success: false,
+        error: 'Deskripsi milestone harus diisi'
+      }
+    }
+
+    if (!tanggal) {
+      return {
+        success: false,
+        error: 'Tanggal target harus diisi'
+      }
+    }
+
+    const mandorId = session.user.id
+
+    // Get milestone with project check
+    const milestone = await db.query.milestones.findFirst({
+      where: eq(milestones.id, milestoneId),
+      with: {
+        projek: true
+      }
+    })
+
+    if (!milestone) {
+      return {
+        success: false,
+        error: 'Milestone tidak ditemukan'
+      }
+    }
+
+    // Check if project belongs to mandor
+    if (milestone.projek.mandorId !== mandorId) {
+      return {
+        success: false,
+        error: 'Unauthorized'
+      }
+    }
+
+    // Parse tanggal
+    const tanggalDate = new Date(tanggal)
+    if (isNaN(tanggalDate.getTime())) {
+      return {
+        success: false,
+        error: 'Format tanggal tidak valid'
+      }
+    }
+
+    // Prepare update data
+    const updateData: any = {
+      nama: nama.trim(),
+      deskripsi: deskripsi.trim(),
+      tanggal: tanggalDate,
+      updatedAt: new Date()
+    }
+
+    // Update milestone
+    const [updatedMilestone] = await db.update(milestones)
+      .set(updateData)
+      .where(eq(milestones.id, milestoneId))
+      .returning()
+
+    // Update project lastUpdate
+    await db.update(projeks)
+      .set({ 
+        lastUpdate: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(projeks.id, milestone.proyekId))
+
+    // Revalidate paths
+    revalidatePath('/mandor')
+    revalidatePath(`/mandor/proyek/${milestone.proyekId}`)
+
+    return {
+      success: true,
+      data: updatedMilestone,
+      message: 'Milestone berhasil diperbarui'
+    }
+  } catch (error) {
+    console.error('Error updating milestone from form:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Gagal memperbarui milestone'
+    }
+  }
+}
+
+/**
  * Delete Milestone
- * Deletes a milestone (soft delete by keeping record but removing from view)
  */
 export async function deleteMilestone(milestoneId: string) {
   try {
@@ -281,7 +412,7 @@ export async function deleteMilestone(milestoneId: string) {
       }
     }
 
-    // Delete milestone (cascade will handle related records)
+    // Delete milestone
     await db.delete(milestones)
       .where(eq(milestones.id, milestoneId))
 
@@ -311,11 +442,10 @@ export async function deleteMilestone(milestoneId: string) {
 
 /**
  * Update Milestone Status Only
- * Quick update for milestone status (commonly used in UI)
  */
 export async function updateMilestoneStatus(
   milestoneId: string,
-  status: 'Belum Dimulai' | 'Dalam Progress' | 'Selesai'
+  status: 'Belum Dimulai' | 'Dalam Progress' | 'Selesai' | 'Dibatalkan'
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -366,6 +496,10 @@ export async function updateMilestoneStatus(
       if (!milestone.mulai) {
         updateData.mulai = new Date()
       }
+    } else if (status === 'Dibatalkan' || status === 'Belum Dimulai') {
+      // Reset dates if cancelled or back to not started
+      updateData.mulai = null
+      updateData.selesai = null
     }
 
     // Update milestone

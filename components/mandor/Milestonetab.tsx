@@ -1,7 +1,6 @@
-// FILE: components/mandor/MilestoneTab.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   Plus, 
   Pencil, 
@@ -39,7 +38,11 @@ export function MilestoneTab({
 }: MilestoneTabProps) {
   const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
-  const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, string>>({})
+  
+  // Sync with initialMilestones when they change
+  useEffect(() => {
+    setMilestones(initialMilestones)
+  }, [initialMilestones])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -68,11 +71,12 @@ export function MilestoneTab({
     { value: 'Dibatalkan', label: 'Dibatalkan', icon: '❌', color: 'rose' }
   ]
 
-  // Quick update status dengan optimistic updates
+  // Update status dengan sync langsung ke UI
   const handleQuickUpdateStatus = async (milestoneId: string, newStatus: string) => {
-    // 1. Optimistic update: langsung update UI tanpa nunggu server
     const originalMilestones = [...milestones]
+    const originalStatus = milestones.find(m => m.id === milestoneId)?.status
     
+    // Langsung update UI
     setMilestones(prev => prev.map(m => 
       m.id === milestoneId 
         ? { 
@@ -85,23 +89,25 @@ export function MilestoneTab({
     ))
     
     setUpdatingStatus(milestoneId)
-    setOptimisticUpdates(prev => ({ ...prev, [milestoneId]: newStatus }))
 
     try {
+      // Import dengan dynamic import
       const { updateMilestoneStatus } = await import('@/lib/actions/mandor/milestone')
-      const result = await updateMilestoneStatus(milestoneId, newStatus, proyekId)
+      const result = await updateMilestoneStatus(milestoneId, newStatus as any)
       
       if (result.success) {
         toast.success(`✓ Status berhasil diubah menjadi "${newStatus}"`)
         
-        // 3. Setelah berhasil, update state dengan data fresh
+        // Refresh data dari server untuk sinkronisasi
         if (onRefresh) {
-          onRefresh()
+          setTimeout(() => {
+            onRefresh()
+          }, 500)
         }
         
       } else {
-        // 4. Jika gagal, rollback ke state sebelumnya
         toast.error(result.error || 'Gagal mengupdate status')
+        // Rollback jika gagal
         setMilestones(originalMilestones)
       }
     } catch (error) {
@@ -111,26 +117,13 @@ export function MilestoneTab({
       setMilestones(originalMilestones)
     } finally {
       setUpdatingStatus(null)
-      setOptimisticUpdates(prev => {
-        const newUpdates = { ...prev }
-        delete newUpdates[milestoneId]
-        return newUpdates
-      })
     }
   }
 
-  // Get display status (prioritize optimistic update)
-  const getDisplayStatus = (milestoneId: string, currentStatus: string) => {
-    return optimisticUpdates[milestoneId] || currentStatus
-  }
-
-  // Calculate progress statistics - REALTIME
+  // Calculate progress statistics
   const calculateProgress = () => {
     const total = milestones.length
-    // Gunakan display status untuk perhitungan realtime
-    const selesai = milestones.filter(m => 
-      getDisplayStatus(m.id, m.status) === 'Selesai'
-    ).length
+    const selesai = milestones.filter(m => m.status === 'Selesai').length
     const progress = total > 0 ? Math.round((selesai / total) * 100) : 0
     
     return { total, selesai, progress }
@@ -140,7 +133,7 @@ export function MilestoneTab({
 
   return (
     <div className="space-y-6">
-      {/* Header dengan Progress Stats - REALTIME */}
+      {/* Header dengan Progress Stats */}
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 md:p-6 border border-blue-100">
         <div className="space-y-4">
           <div>
@@ -150,7 +143,7 @@ export function MilestoneTab({
             </p>
           </div>
           
-          {/* Progress Stats - REALTIME */}
+          {/* Progress Stats */}
           <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-slate-200">
             <div className="flex items-center justify-center gap-6">
               <div className="text-center">
@@ -179,12 +172,10 @@ export function MilestoneTab({
         </div>
       </div>
 
-      {/* Status Summary - REALTIME */}
+      {/* Status Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {statusOptions.map((status) => {
-          const count = milestones.filter(m => 
-            getDisplayStatus(m.id, m.status) === status.value
-          ).length
+          const count = milestones.filter(m => m.status === status.value).length
           return (
             <Card key={status.value} className="bg-white border-0 shadow-sm">
               <CardContent className="p-3 md:p-4">
@@ -226,7 +217,6 @@ export function MilestoneTab({
           </Card>
         ) : (
           milestones.map((milestone) => {
-            const displayStatus = getDisplayStatus(milestone.id, milestone.status)
             const isUpdating = updatingStatus === milestone.id
             
             return (
@@ -236,7 +226,7 @@ export function MilestoneTab({
               >
                 <CardContent className="p-4 md:p-6">
                   <div className="space-y-4">
-                    {/* Header dengan Title dan Status Badge - REALTIME */}
+                    {/* Header dengan Title dan Status Badge */}
                     <div className="space-y-3">
                       <div className="flex items-start justify-between gap-2">
                         <h4 className="font-bold text-base md:text-lg text-slate-900 flex-1">
@@ -249,10 +239,10 @@ export function MilestoneTab({
                           </div>
                         )}
                       </div>
-                      <Badge className={getStatusColor(displayStatus)}>
+                      <Badge className={getStatusColor(milestone.status)}>
                         <div className="flex items-center gap-1.5 font-semibold text-xs px-1 py-0.5">
-                          {getStatusIcon(displayStatus)}
-                          {displayStatus}
+                          {getStatusIcon(milestone.status)}
+                          {milestone.status}
                         </div>
                       </Badge>
                     </div>
@@ -262,14 +252,14 @@ export function MilestoneTab({
                       {milestone.deskripsi}
                     </p>
 
-                    {/* Quick Status Update - User Friendly */}
+                    {/* Quick Status Update */}
                     <div className="bg-slate-50 rounded-xl p-3 md:p-4 border border-slate-200">
                       <label className="text-xs font-semibold text-slate-600 mb-2 md:mb-3 block">
                         UBAH STATUS
                       </label>
                       <div className="grid grid-cols-2 gap-2">
                         {statusOptions.map((option) => {
-                          const isActive = displayStatus === option.value
+                          const isActive = milestone.status === option.value
                           const bgColor = {
                             slate: 'bg-slate-100 border-slate-300',
                             amber: 'bg-amber-100 border-amber-300',
@@ -411,6 +401,7 @@ export function MilestoneTab({
               <li>• Klik tombol status untuk update cepat - perubahan langsung terlihat</li>
               <li>• Progress proyek otomatis terhitung realtime dari milestone yang selesai</li>
               <li>• Status akan otomatis tersimpan ke database</li>
+              <li>• Setelah edit nama, halaman akan otomatis refresh</li>
             </ul>
           </div>
         </div>

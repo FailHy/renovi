@@ -65,14 +65,6 @@ export function ProjectInfoTab({ project, milestones, onProgressClick }: Project
                 style={{ width: `${project.progress}%` }}
               />
             </div>
-            <Button
-              variant="outline"
-              onClick={onProgressClick}
-              className="w-full mt-2 border-2 border-slate-300 text-slate-700 hover:bg-slate-100 hover:border-blue-500 flex items-center justify-center gap-2 font-semibold transition-all"
-            >
-              <Pencil className="w-4 h-4" />
-              <span>Update Progress Manual</span>
-            </Button>
           </div>
 
           {/* Informasi Detail */}

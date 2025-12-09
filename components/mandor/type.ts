@@ -7,16 +7,19 @@ export interface Pelanggan {
   alamat?: string
 }
 
+// components/mandor/type.ts
 export interface Milestone {
   id: string
   nama: string
-  deskripsi: string
-  status: 'Belum Dimulai' | 'Dalam Progress' | 'Selesai' | 'Dibatalkan'
+  deskripsi: string | null  // ✅ Allow null
   tanggal: string
-  mulai?: string
-  selesai?: string
-  createdAt: string
-  updatedAt: string
+  status: 'Belum Dimulai' | 'Dalam Progress' | 'Selesai'
+  gambar: string[] | null   // ✅ Allow null
+  mulai: Date | null
+  selesai: Date | null
+  proyekId: string
+  createdAt: Date
+  updatedAt: Date
 }
 
 export interface Project {

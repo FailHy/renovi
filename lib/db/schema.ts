@@ -1,6 +1,6 @@
 // FILE: db/schema.ts
 // ========================================
-// IMPROVED SCHEMA - PRODUCTION READY
+// SIMPLIFIED SCHEMA - WITHOUT APPROVAL WORKFLOW
 // ========================================
 import { pgTable, text, timestamp, integer, decimal, boolean, uuid, pgEnum } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
@@ -29,13 +29,7 @@ export const statusBahanEnum = pgEnum('status_bahan', [
   'Rusak'
 ])
 
-// ⭐ NEW: Status nota untuk approval workflow
-export const statusNotaEnum = pgEnum('status_nota', [
-  'draft',
-  'pending',
-  'approved',
-  'rejected'
-])
+// ⚠️ REMOVED: statusNotaEnum (approval workflow dihapus)
 
 export const satuanEnum = pgEnum('satuan', [
   'pcs',
@@ -80,7 +74,7 @@ export const projeks = pgTable('projek', {
   mandorId: uuid('mandor_id').references(() => users.id, { onDelete: 'set null' }),
   
   nama: text('nama').notNull(),
-  tipeLayanan: text('tipe_layanan').notNull(), // "Renovasi", "Konstruksi", "Desain Interior"
+  tipeLayanan: text('tipe_layanan').notNull(),
   deskripsi: text('deskripsi').notNull(),
   alamat: text('alamat').notNull(),
   telpon: text('telpon'),
@@ -92,7 +86,6 @@ export const projeks = pgTable('projek', {
   mulai: timestamp('mulai').notNull(),
   selesai: timestamp('selesai'),
   
-  // ⭐ IMPROVED: Better naming
   lastUpdate: timestamp('last_update').defaultNow().notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -120,7 +113,7 @@ export const milestones = pgTable('milestone', {
 })
 
 // ========================================
-// TABLE: NOTA BELANJA (NEW - PARENT)
+// TABLE: NOTA BELANJA (SIMPLIFIED)
 // ========================================
 export const notaBelanjas = pgTable('nota_belanja', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -133,43 +126,39 @@ export const notaBelanjas = pgTable('nota_belanja', {
   milestoneId: uuid('milestone_id')
     .references(() => milestones.id, { onDelete: 'set null' }),
   
-  // User tracking
+  // User tracking (hanya creator)
   createdBy: uuid('created_by')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   
-  approvedBy: uuid('approved_by')
-    .references(() => users.id, { onDelete: 'set null' }),
+  // ⚠️ REMOVED: approvedBy (no approval workflow)
   
   // Informasi nota
   nomorNota: text('nomor_nota'),
   namaToko: text('nama_toko'),
-  fotoNotaUrl: text('foto_nota_url').notNull(),
+  fotoNotaUrl: text('foto_nota_url').notNull(), // ✅ KEPT
   
-  tanggalBelanja: timestamp('tanggal_belanja').notNull(),
+  tanggalBelanja: timestamp('tanggal_belanja').notNull(), // ✅ KEPT
   
-  // Status & approval
-  status: statusNotaEnum('status').notNull().default('draft'),
-  catatanApproval: text('catatan_approval'),
+  // ⚠️ REMOVED: status (no approval workflow)
+  // ⚠️ REMOVED: catatanApproval
   
   // Timestamps
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  approvedAt: timestamp('approved_at'),
+  // ⚠️ REMOVED: approvedAt
 })
 
 // ========================================
-// TABLE: BAHAN HARIANS (IMPROVED - CHILD OF NOTA)
+// TABLE: BAHAN HARIANS
 // ========================================
 export const bahanHarians = pgTable('bahan_harian', {
   id: uuid('id').defaultRandom().primaryKey(),
   
-  // ⭐ NEW: Link to nota belanja
   notaId: uuid('nota_id')
     .notNull()
     .references(() => notaBelanjas.id, { onDelete: 'cascade' }),
   
-  // Keep direct project reference for easy queries
   proyekId: uuid('proyek_id')
     .notNull()
     .references(() => projeks.id, { onDelete: 'cascade' }),
@@ -177,44 +166,24 @@ export const bahanHarians = pgTable('bahan_harian', {
   milestoneId: uuid('milestone_id')
     .references(() => milestones.id, { onDelete: 'set null' }),
   
-  // Bahan details
   nama: text('nama').notNull(),
   deskripsi: text('deskripsi'),
   gambar: text('gambar').array(),
   
-  // ⭐ CHANGED: real → decimal for precision
   harga: decimal('harga', { precision: 12, scale: 2 }).notNull(),
   kuantitas: decimal('kuantitas', { precision: 10, scale: 2 }).default('1').notNull(),
   
   satuan: satuanEnum('satuan').notNull().default('pcs'),
   
-  // ⭐ NEW: Kategori untuk reporting
-  kategori: text('kategori'), // "Material", "Alat", "Upah", dll
+  kategori: text('kategori'),
   
-  // Status penggunaan
   status: statusBahanEnum('status').notNull().default('Digunakan'),
-  
-  // ⚠️ REMOVED: tanggal (use nota's tanggalBelanja instead)
   
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
-// ========================================
-// TABLE: FOTO NOTA (OPTIONAL - MULTIPLE PHOTOS)
-// ========================================
-export const fotoNotas = pgTable('foto_nota', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  
-  notaId: uuid('nota_id')
-    .notNull()
-    .references(() => notaBelanjas.id, { onDelete: 'cascade' }),
-  
-  fotoUrl: text('foto_url').notNull(),
-  keterangan: text('keterangan'),
-  
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+// ⚠️ REMOVED: fotoNotas table (tabel foto_nota dihapus sepenuhnya)
 
 // ========================================
 // TABLE: ARTIKELS
@@ -278,9 +247,8 @@ export const testimonis = pgTable('testimoni', {
   
   komentar: text('komentar').notNull(),
   gambar: text('gambar'),
-  rating: integer('rating').notNull(), // 1-5
+  rating: integer('rating').notNull(),
   
-  // Approval tracking
   approved: boolean('approved').default(false).notNull(),
   approvedAt: timestamp('approved_at'),
   approvedBy: uuid('approved_by')
@@ -296,15 +264,13 @@ export const testimonis = pgTable('testimoni', {
 // ========================================
 
 export const usersRelations = relations(users, ({ many }) => ({
-  // Projek relations
   projeksAsPelanggan: many(projeks, { relationName: 'pelanggan' }),
   projeksAsMandor: many(projeks, { relationName: 'mandor' }),
   
-  // Nota relations
+  // ⚠️ SIMPLIFIED: Hanya creator relation
   notasCreated: many(notaBelanjas, { relationName: 'creator' }),
-  notasApproved: many(notaBelanjas, { relationName: 'approver' }),
+  // ⚠️ REMOVED: notasApproved
   
-  // Other relations
   artikels: many(artikels),
   testimonis: many(testimonis),
   approvedTestimonis: many(testimonis, { relationName: 'approver' }),
@@ -337,7 +303,7 @@ export const milestonesRelations = relations(milestones, ({ one, many }) => ({
   bahanHarians: many(bahanHarians),
 }))
 
-// ⭐ NEW: Nota Belanja Relations
+// ✅ SIMPLIFIED: Nota Belanja Relations (without approver & photos)
 export const notaBelanjaRelations = relations(notaBelanjas, ({ one, many }) => ({
   projek: one(projeks, {
     fields: [notaBelanjas.proyekId],
@@ -352,13 +318,9 @@ export const notaBelanjaRelations = relations(notaBelanjas, ({ one, many }) => (
     references: [users.id],
     relationName: 'creator',
   }),
-  approver: one(users, {
-    fields: [notaBelanjas.approvedBy],
-    references: [users.id],
-    relationName: 'approver',
-  }),
+  // ⚠️ REMOVED: approver relation
   items: many(bahanHarians),
-  photos: many(fotoNotas),
+  // ⚠️ REMOVED: photos relation
 }))
 
 export const bahanHariansRelations = relations(bahanHarians, ({ one }) => ({
@@ -376,13 +338,7 @@ export const bahanHariansRelations = relations(bahanHarians, ({ one }) => ({
   }),
 }))
 
-// ⭐ NEW: Foto Nota Relations
-export const fotoNotaRelations = relations(fotoNotas, ({ one }) => ({
-  nota: one(notaBelanjas, {
-    fields: [fotoNotas.notaId],
-    references: [notaBelanjas.id],
-  }),
-}))
+// ⚠️ REMOVED: fotoNotaRelations
 
 export const portfoliosRelations = relations(portfolios, ({ one }) => ({
   projek: one(projeks, {
@@ -433,8 +389,7 @@ export type NewNotaBelanja = typeof notaBelanjas.$inferInsert
 export type BahanHarian = typeof bahanHarians.$inferSelect
 export type NewBahanHarian = typeof bahanHarians.$inferInsert
 
-export type FotoNota = typeof fotoNotas.$inferSelect
-export type NewFotoNota = typeof fotoNotas.$inferInsert
+// ⚠️ REMOVED: FotoNota types
 
 export type Artikel = typeof artikels.$inferSelect
 export type NewArtikel = typeof artikels.$inferInsert
