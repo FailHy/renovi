@@ -11,7 +11,6 @@ import { approveTestimoni, rejectTestimoni, getTestimonis } from '@/lib/actions/
 import { formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
 
-// ✅ Type Definition - UPDATE SESUAI DENGAN ACTION BARU
 interface TestimoniData {
   id: string
   komentar: string
@@ -252,18 +251,26 @@ export default function ManajemenTestimoniPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <Card className="bg-white shadow-sm border border-gray-100">
+        <Card className="border border-gray-200 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">
-                  Total Testimoni
-                </p>
-                <p className="text-3xl font-bold text-gray-800">{testimonis.length}</p>
+                <p className="text-sm text-gray-600 mb-1">Approved</p>
+                <p className="text-3xl font-bold text-grey-900">{stats.approved}</p>
               </div>
-              <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center">
-                <MessageSquare className="w-6 h-6 text-blue-600" />
+              <MessageSquare className="w-12 h-12 text-blue-600 opacity-20" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Waiting For Approval</p>
+                <p className="text-3xl font-bold text-amber-600">{stats.pending}</p>
               </div>
+              <Clock className="w-12 h-12 text-amber-600 opacity-20" />
             </div>
           </CardContent>
         </Card>
@@ -272,34 +279,16 @@ export default function ManajemenTestimoniPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">
-                  Menunggu Approval
-                </p>
-                <p className="text-3xl font-bold text-amber-600">
-                  {stats.pending}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center">
-                <Clock className="w-6 h-6 text-amber-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white shadow-sm border border-gray-100">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">
+                <p className="text-sm text-graay-600 mb-1">
                   Rata-rata Rating
                 </p>
                 <div className="flex items-center gap-2">
-                  <p className="text-3xl font-bold text-gray-800">{stats.avgRating}</p>
+                  <p className="text-3xl font-bold text-yellow-400">{stats.avgRating}</p>
                   <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
                 </div>
               </div>
               <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center">
-                <Check className="w-6 h-6 text-emerald-600" />
+                <Check className="w-10 h-10 text-emerald-600 opacity-20" />
               </div>
             </div>
           </CardContent>
