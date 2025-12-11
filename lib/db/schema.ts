@@ -15,7 +15,8 @@ export const statusProyekEnum = pgEnum('status_proyek', [
 export const statusMilestoneEnum = pgEnum('status_milestone', [
   'Belum Dimulai',
   'Dalam Progress',
-  'Selesai'
+  'Selesai',
+  'Dibatalkan'
 ])
 
 export const statusBahanEnum = pgEnum('status_bahan', [
@@ -89,8 +90,7 @@ export const milestones = pgTable('milestone', {
   proyekId: uuid('proyek_id').notNull().references(() => projeks.id, { onDelete: 'cascade' }),
   nama: text('nama').notNull(),
   deskripsi: text('deskripsi'),
-  gambar: text('gambar').array(),
-  status: statusMilestoneEnum('status').notNull().default('Belum Dimulai'),
+   status: statusMilestoneEnum('status').notNull().default('Belum Dimulai'),
   tanggal: timestamp('tanggal').notNull(),
   mulai: timestamp('mulai'),
   selesai: timestamp('selesai'),

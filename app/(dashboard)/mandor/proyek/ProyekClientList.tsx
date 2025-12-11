@@ -217,7 +217,7 @@ export function ProyekListClient({ projects }: ProyekListClientProps) {
                   </span>
                 </div>
                 
-                {/* Description */}
+                Description
                 <p className="text-sm text-slate-600 mb-6 line-clamp-2 leading-relaxed">
                   {project.deskripsi}
                 </p>

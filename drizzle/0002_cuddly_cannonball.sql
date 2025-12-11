@@ -1,0 +1,1 @@
+ALTER TYPE "public"."status_milestone" ADD VALUE 'Dibatalkan';

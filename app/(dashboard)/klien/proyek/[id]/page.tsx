@@ -1,4 +1,3 @@
-// app/(dashboard)/klien/proyek/[id]/page.tsx
 import { redirect, notFound } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -7,7 +6,11 @@ import { DetailProyekKlienClient } from './DetailProyekClient'
 import { getProyekById } from '@/lib/actions/shared/proyekShared'
 import { getMilestonesByProyekId } from '@/lib/actions/shared/milestoneShared'
 import { getBahanByProyekId } from '@/lib/actions/shared/bahanShared'
-import { any } from 'zod'
+
+// Pastikan halaman selalu fresh (tidak di-cache) agar data progress realtime
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function DetailProyekKlienPage({
   params
 }: {
@@ -17,78 +20,24 @@ export default async function DetailProyekKlienPage({
     // Await params (Next.js 15)
     const { id } = await params
     
-    console.log('=== KLIEN PROJECT PAGE DEBUG ===')
-    console.log('Project ID from params:', id)
-    
     // Get session
     const session = await getServerSession(authOptions)
     
     if (!session?.user) {
-      console.log('❌ No user session found')
       redirect('/login')
     }
 
-    console.log('User session data:', {
-      id: session.user.id,
-      role: session.user.role,
-      email: session.user.email,
-      name: session.user.name
-    })
-
     // Validasi role pelanggan
     if (session.user.role !== 'pelanggan') {
-      console.log('❌ Access denied - Wrong role:', session.user.role)
       redirect('/dashboard')
     }
 
-    // ✅ FIX 1: Fetch project menggunakan shared action dengan role
-    console.log('Fetching project data for klien...')
+    // ✅ LANGKAH 1: Ambil Milestones TERLEBIH DAHULU
+    // Alasannya: Fungsi getMilestonesByProyekId di milestoneShared.ts mengandung logika "Self-Healing"
+    // yang akan memperbaiki data progress di database jika tidak sinkron.
+    let milestones: any[] = []
     
-    const proyekResult = await getProyekById(id, session.user.id, 'pelanggan')
-    
-    console.log('Project fetch result:', {
-      success: proyekResult.success,
-      error: proyekResult.error,
-      dataExists: !!proyekResult.data,
-      projectName: proyekResult.data?.nama || 'No name'
-    })
-
-    // Handle error states
-    if (!proyekResult.success) {
-      console.error('Failed to fetch project:', proyekResult.error)
-      
-      if (proyekResult.error?.includes('not found') || 
-          proyekResult.error?.includes('tidak ditemukan')) {
-        notFound()
-      }
-      
-      if (proyekResult.error?.includes('Unauthorized') ||
-          proyekResult.error?.includes('akses')) {
-        redirect('/klien/proyek') // Redirect ke list proyek
-      }
-      
-      throw new Error(proyekResult.error || 'Gagal memuat proyek')
-    }
-
-    if (!proyekResult.data) {
-      console.log('❌ Project data is null/undefined')
-      notFound()
-    }
-
-    const proyek = proyekResult.data
-    console.log('✅ Project loaded successfully:', {
-      id: proyek.id,
-      name: proyek.nama,
-      status: proyek.status,
-      // progress: proyek.progress,
-      mandorId: proyek.mandorId,
-      mandorName: proyek.mandor?.nama
-    })
-
-    // ✅ FIX 2: Fetch milestones menggunakan shared action
-    let milestones: any[]
     try {
-      console.log('Fetching milestones...')
       const milestonesResult = await getMilestonesByProyekId(
         id, 
         session.user.id, 
@@ -96,30 +45,76 @@ export default async function DetailProyekKlienPage({
       )
       
       if (milestonesResult.success && milestonesResult.data) {
-        // ✅ Transform data untuk match dengan UI expectations
+        // Transform data untuk UI Client
         milestones = milestonesResult.data.map(m => ({
           id: m.id,
           nama: m.nama,
           deskripsi: m.deskripsi,
           status: m.status,
-          targetSelesai: m.tanggal, // Gunakan tanggal sebagai target
+          targetSelesai: m.tanggal,
           tanggalSelesai: m.selesai
         }))
-        console.log(`✅ Loaded ${milestones.length} milestones`)
-      } else {
-        console.warn('⚠️ Failed to load milestones:', milestonesResult.error)
-        milestones = []
       }
     } catch (milestoneError) {
       console.error('Error fetching milestones:', milestoneError)
       milestones = []
     }
 
-    // ✅ FIX 3: Fetch bahan materials menggunakan shared action
-    let bahan: any[]
-    try {
-      console.log('Fetching bahan materials...')
+    // ✅ LANGKAH 2: Ambil Data Proyek (Setelah DB di-sync oleh langkah 1)
+    const proyekResult = await getProyekById(id, session.user.id, 'pelanggan')
+
+    if (!proyekResult.success) {
+      if (proyekResult.error?.includes('not found') || 
+          proyekResult.error?.includes('tidak ditemukan')) {
+        notFound()
+      }
+      if (proyekResult.error?.includes('Unauthorized')) {
+        redirect('/klien/proyek') 
+      }
+      throw new Error(proyekResult.error || 'Gagal memuat proyek')
+    }
+
+    if (!proyekResult.data) {
+      notFound()
+    }
+
+    const proyek = proyekResult.data
+
+    // ✅ LANGKAH 3: Hitung Ulang Progress Secara Manual (Server-Side Calculation)
+    // Ini menjamin angka yang dikirim ke Client Component 100% akurat berdasarkan milestone yang baru diambil,
+    // mengabaikan potensi delay update di database.
+    let calculatedProgress = 0
+    let calculatedStatus = proyek.status
+
+    if (milestones.length > 0) {
+      const activeMilestones = milestones.filter(m => m.status !== 'Dibatalkan')
+      const totalActive = activeMilestones.length
+      const completedCount = activeMilestones.filter(m => m.status === 'Selesai').length
       
+      if (totalActive > 0) {
+        calculatedProgress = Math.round((completedCount / totalActive) * 100)
+      }
+
+      // Sinkronisasi status visual berdasarkan progress
+      if (calculatedProgress === 100 && totalActive > 0) {
+        calculatedStatus = 'Selesai'
+      } else if (calculatedProgress > 0) {
+        calculatedStatus = 'Dalam Progress'
+      } else if (calculatedProgress === 0 && totalActive > 0) {
+         // Jika milestone ada tapi belum ada yang selesai, status minimal 'Dalam Progress' (bukan Perencanaan)
+         // agar Client tidak bingung
+         if (proyek.status === 'Perencanaan') {
+            calculatedStatus = 'Dalam Progress'
+         }
+      }
+    } else {
+        // Jika tidak ada milestone, gunakan data DB
+        calculatedProgress = proyek.progress
+    }
+
+    // ✅ LANGKAH 4: Ambil Bahan Material
+    let bahan: any[] = []
+    try {
       const bahanResult = await getBahanByProyekId(
         id, 
         session.user.id, 
@@ -127,50 +122,38 @@ export default async function DetailProyekKlienPage({
       )
       
       if (bahanResult.success && bahanResult.data) {
-        // ✅ Data sudah dalam format yang benar dengan relasi nota
         bahan = bahanResult.data
-        console.log(`✅ Loaded ${bahan.length} bahan items`)
-      } else {
-        console.warn('⚠️ Failed to load bahan:', bahanResult.error)
-        bahan = []
       }
     } catch (bahanError) {
       console.error('Error fetching bahan:', bahanError)
       bahan = []
     }
 
-    // ✅ Transform proyek data untuk match dengan UI - PERBAIKI INI!
-const proyekForClient = {
-  id: proyek.id,
-  nama: proyek.nama,
-  tipeLayanan: proyek.tipeLayanan,
-  deskripsi: proyek.deskripsi,
-  alamat: proyek.alamat,
-  status: proyek.status,
-  progress: proyek.progress,
-  tanggalMulai: proyek.tanggalMulai,
-  tanggalSelesai: proyek.tanggalSelesai,
-  mandor: proyek.mandor ? {
-    id: proyek.mandor.id,
-    nama: proyek.mandor.nama,
-    telpon: proyek.mandor.telpon
-  } : {
-    id: '',
-    nama: 'Belum ditentukan',
-    telpon: null
-  },
-  hasTestimoni: proyek.hasTestimoni, // Masih ada untuk backward compatibility
-  testimoniData: proyek.testimoniData // Menambahkan
-}
-
-console.log('=== PAGE DATA SUMMARY ===')
-console.log('- Project:', proyekForClient.nama)
-console.log('- Mandor:', proyekForClient.mandor.nama)
-console.log('- Milestones:', milestones.length)
-console.log('- Bahan items:', bahan.length)
-console.log('- Has Testimoni:', proyekForClient.hasTestimoni)
-console.log('- Testimoni Data:', proyekForClient.testimoniData) // ✅ Tambah log ini
-console.log('========================')
+    // ✅ LANGKAH 5: Construct Object untuk Client Component
+    const proyekForClient = {
+      id: proyek.id,
+      nama: proyek.nama,
+      tipeLayanan: proyek.tipeLayanan,
+      deskripsi: proyek.deskripsi,
+      alamat: proyek.alamat,
+      // PENTING: Gunakan nilai hasil kalkulasi ulang, bukan mentah dari DB
+      status: calculatedStatus, 
+      progress: calculatedProgress, 
+      
+      tanggalMulai: new Date(proyek.tanggalMulai),
+      tanggalSelesai: proyek.tanggalSelesai ? new Date(proyek.tanggalSelesai) : null,
+      mandor: proyek.mandor ? {
+        id: proyek.mandor.id,
+        nama: proyek.mandor.nama,
+        telpon: proyek.mandor.telpon
+      } : {
+        id: '',
+        nama: 'Belum ditentukan',
+        telpon: null
+      },
+      hasTestimoni: proyek.hasTestimoni,
+      testimoniData: null 
+    }
 
     return (
       <DetailProyekKlienClient
@@ -182,39 +165,12 @@ console.log('========================')
     )
 
   } catch (error) {
-    console.error('❌ CRITICAL ERROR in DetailProyekKlienPage:', error)
+    console.error('❌ Error in DetailProyekKlienPage:', error)
     
-    // Better error handling untuk development
     if (process.env.NODE_ENV === 'development') {
-      return (
-        <div className="p-6 max-w-4xl mx-auto">
-          <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6">
-            <h1 className="text-2xl font-bold text-red-700 mb-4">
-              ⚠️ Development Error
-            </h1>
-            <div className="space-y-3">
-              <div>
-                <p className="font-semibold text-red-600">Error Message:</p>
-                <p className="mt-1 text-red-700">
-                  {error instanceof Error ? error.message : 'Unknown error'}
-                </p>
-              </div>
-              
-              {error instanceof Error && error.stack && (
-                <div>
-                  <p className="font-semibold text-red-600 mb-2">Stack Trace:</p>
-                  <pre className="p-3 bg-gray-100 rounded text-xs overflow-auto max-h-96">
-                    {error.stack}
-                  </pre>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )
+       throw error;
     }
     
-    // Untuk production, redirect ke halaman error
     redirect('/klien/proyek')
   }
 }

@@ -15,6 +15,13 @@
       "when": 1765425419214,
       "tag": "0001_fast_redwing",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765434196284,
+      "tag": "0002_cuddly_cannonball",
+      "breakpoints": true
     }
   ]
 }

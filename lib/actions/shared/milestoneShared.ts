@@ -1,9 +1,8 @@
-// lib/actions/shared/milestone.ts
 'use server'
 
 import { db } from '@/lib/db'
 import { milestones, projeks } from '@/lib/db/schema'
-import { eq, and, asc } from 'drizzle-orm'
+import { eq, asc } from 'drizzle-orm'
 import { UserRole } from '@/lib/utils/sharedRoles'
 import { getProyekById } from './proyekShared'
 
@@ -19,6 +18,65 @@ export interface MilestoneData {
   selesai: Date | null
   createdAt: Date
   updatedAt: Date
+}
+
+/**
+ * Helper: Hitung & Update Progress Database (Self-Healing)
+ * Dipanggil otomatis saat fetch data untuk memastikan DB selalu sinkron
+ */
+async function syncProjectStatusAndProgress(proyekId: string, milestoneList: any[]) {
+  try {
+    const total = milestoneList.length
+    // Filter milestone aktif
+    const activeMilestones = milestoneList.filter(m => m.status !== 'Dibatalkan')
+    const effectiveTotal = activeMilestones.length
+    const completedCount = activeMilestones.filter(m => m.status === 'Selesai').length
+
+    // 1. Hitung Progress
+    let newProgress = 0
+    if (effectiveTotal > 0) {
+      newProgress = Math.round((completedCount / effectiveTotal) * 100)
+    }
+
+    // 2. Tentukan Status
+    let newStatus = undefined
+    
+    if (newProgress === 100 && effectiveTotal > 0) {
+      newStatus = 'Selesai'
+    } else if (newProgress > 0 && newProgress < 100) {
+      newStatus = 'Dalam Progress'
+    } else if (newProgress === 0 && effectiveTotal > 0) {
+      // Jika ada milestone tapi 0%, set ke Dalam Progress agar tidak stuck di Perencanaan
+      newStatus = 'Dalam Progress'
+    } else if (total === 0) {
+      newStatus = 'Perencanaan'
+    }
+
+    // 3. Siapkan Update Data
+    const updateData: any = {
+      progress: newProgress,
+      lastUpdate: new Date() // Refresh timestamp agar naik ke atas list
+    }
+
+    if (newStatus) {
+      updateData.status = newStatus
+      // Jika status berubah jadi Selesai, set tanggal selesai
+      if (newStatus === 'Selesai') {
+        updateData.selesai = new Date()
+      }
+    }
+
+    // 4. Eksekusi Update ke DB (Fire and Forget - biar cepat)
+    // Kita tidak await ini agar user tidak menunggu proses write DB
+    db.update(projeks)
+      .set(updateData)
+      .where(eq(projeks.id, proyekId))
+      .then(() => console.log(`🔄 [Auto-Sync] Project ${proyekId} synced to ${newProgress}% (${newStatus || 'unchanged'})`))
+      .catch(err => console.error('❌ [Auto-Sync] Failed:', err))
+
+  } catch (error) {
+    console.error('❌ Error in sync logic:', error)
+  }
 }
 
 /**
@@ -44,6 +102,12 @@ export async function getMilestonesByProyekId(
       where: eq(milestones.proyekId, proyekId),
       orderBy: [asc(milestones.tanggal)],
     })
+
+    // 🔥 TRIGGER SELF-HEALING
+    // Setiap kali data dibaca, kita pastikan DB sinkron dengan perhitungan terbaru
+    if (milestoneList.length > 0) {
+      await syncProjectStatusAndProgress(proyekId, milestoneList)
+    }
 
     return { 
       success: true, 

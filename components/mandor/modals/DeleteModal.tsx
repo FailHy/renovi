@@ -82,7 +82,7 @@ export function DeleteConfirmModal({
       {/* Main Content */}
       <div className="text-center space-y-3">
         <div className="space-y-1">
-          <h3 className="text-base font-semibold text-gray-900">
+          <h3 className="text-basef font-semibold text-gray-900">
             {description || defaultDescription}
           </h3>
           

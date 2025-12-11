@@ -1,4 +1,4 @@
-// FILE: lib/actions/shared/proyek.ts
+// lib/actions/shared/proyekShared.ts
 'use server'
 
 import { db } from '@/lib/db'
@@ -30,39 +30,35 @@ export interface ProyekData {
     telpon: string | null
   }
   hasTestimoni: boolean
-  testimoniData?: {
-    id: string
-    rating: number
-    komentar: string
-    approved: boolean
-    createdAt: Date
-  } | null
   lastUpdate: Date
   createdAt: Date
   updatedAt: Date
 }
 
 /**
- * Calculate project progress based on milestones
+ * 🔄 REAL-TIME PROGRESS CALCULATION
+ * Menghitung progress langsung dari milestone yang ada di database.
+ * Ini menjamin data yang dilihat klien selalu akurat, tidak peduli status field 'progress' di tabel proyek.
  */
-async function calculateProyekProgress(proyekId: string): Promise<number> {
+async function calculateRealTimeProgress(proyekId: string): Promise<number> {
   try {
     const milestoneList = await db
       .select({
-        total: sql<number>`COUNT(*)`,
-        selesai: sql<number>`COUNT(CASE WHEN ${milestones.status} = 'Selesai' THEN 1 END)`
+        status: milestones.status
       })
       .from(milestones)
       .where(eq(milestones.proyekId, proyekId))
 
-    if (milestoneList.length === 0 || milestoneList[0].total === 0) {
-      return 0
-    }
-
-    const { total, selesai } = milestoneList[0]
-    const progress = Math.round((Number(selesai) / Number(total)) * 100)
+    // Filter milestone yang aktif (tidak dibatalkan)
+    const activeMilestones = milestoneList.filter(m => m.status !== 'Dibatalkan')
+    const total = activeMilestones.length
     
-    return progress
+    if (total === 0) return 0
+
+    const completed = activeMilestones.filter(m => m.status === 'Selesai').length
+    
+    // Hitung persentase
+    return Math.round((completed / total) * 100)
   } catch (error) {
     console.error('Error calculating progress:', error)
     return 0
@@ -78,21 +74,6 @@ export async function getProyekById(id: string, userId: string, role: UserRole) 
       return { success: false, error: 'Invalid parameters', data: null }
     }
 
-    // ✅ UPDATE: Get testimoni data juga
-    const testimoniData = await db.query.testimonis.findFirst({
-      where: and(
-        eq(testimonis.proyekId, id),
-        eq(testimonis.userId, userId)
-      ),
-      columns: {
-        id: true,
-        rating: true,
-        komentar: true,
-        approved: true,
-        createdAt: true
-      }
-    })
-
     // Get project with relations
     const result = await db
       .select({
@@ -107,8 +88,12 @@ export async function getProyekById(id: string, userId: string, role: UserRole) 
           id: sql<string>`pelanggan_user.id`,
           nama: sql<string>`pelanggan_user.nama`,
           telpon: sql<string | null>`pelanggan_user.telpon`
-        }
-        // ❌ HAPUS: hasTestimoni dari SQL karena kita hitung manual
+        },
+        hasTestimoni: sql<boolean>`EXISTS(
+          SELECT 1 FROM ${testimonis} 
+          WHERE ${testimonis.proyekId} = ${projeks.id}
+          AND ${testimonis.userId} = ${userId}
+        )`
       })
       .from(projeks)
       .innerJoin(
@@ -128,21 +113,29 @@ export async function getProyekById(id: string, userId: string, role: UserRole) 
 
     const row = result[0]
 
-    // ✅ FIX: Calculate real-time progress from milestones
-    const calculatedProgress = await calculateProyekProgress(id)
+    // 🛡️ SECURITY CHECK
+    // Pastikan user berhak melihat proyek ini
+    if (role === 'pelanggan' && row.projek.pelangganId !== userId) {
+        return { success: false, error: 'Unauthorized Access', data: null }
+    }
+    if (role === 'mandor' && row.projek.mandorId !== userId) {
+        return { success: false, error: 'Unauthorized Access', data: null }
+    }
+
+    // 🔥 FORCE SYNC ON READ
+    // Hitung progress secara real-time saat data diambil
+    const realTimeProgress = await calculateRealTimeProgress(id)
     
-    // Use calculated progress if it's different from stored progress
-    const finalProgress = calculatedProgress > 0 ? calculatedProgress : (row.projek.progress || 0)
+    // Gunakan nilai real-time ini untuk display
+    // Jika berbeda dengan DB, kita bisa trigger update (opsional, tapi untuk display kita pakai yang real-time)
+    const displayProgress = realTimeProgress;
 
-    console.log('Progress calculation:', {
-      proyekId: id,
-      storedProgress: row.projek.progress,
-      calculatedProgress,
-      finalProgress
-    })
-
-    // ✅ FIX: hasTestimoni = testimoni ada DAN approved
-    const hasTestimoni = !!testimoniData?.id && testimoniData.approved === true
+    // Log untuk debugging jika ada perbedaan
+    if (displayProgress !== row.projek.progress) {
+      console.warn(`⚠️ Progress Mismatch for Project ${id}: DB=${row.projek.progress}%, Real-time=${displayProgress}%`)
+      // Self-healing: Update DB secara diam-diam (fire and forget)
+      // await db.update(projeks).set({ progress: displayProgress }).where(eq(projeks.id, id))
+    }
 
     // Format response
     const proyekData: ProyekData = {
@@ -152,7 +145,7 @@ export async function getProyekById(id: string, userId: string, role: UserRole) 
       deskripsi: row.projek.deskripsi,
       alamat: row.projek.alamat,
       status: row.projek.status,
-      progress: finalProgress,
+      progress: displayProgress, // ✅ Use calculated progress
       tanggalMulai: row.projek.mulai,
       tanggalSelesai: row.projek.selesai,
       pelangganId: row.projek.pelangganId,
@@ -168,19 +161,11 @@ export async function getProyekById(id: string, userId: string, role: UserRole) 
         nama: row.pelanggan.nama,
         telpon: row.pelanggan.telpon
       },
-      hasTestimoni, // ✅ Gunakan yang sudah dihitung dengan benar
-      testimoniData, // ✅ Include data testimoni lengkap
+      hasTestimoni: row.hasTestimoni,
       lastUpdate: row.projek.lastUpdate,
       createdAt: row.projek.createdAt,
       updatedAt: row.projek.updatedAt
     }
-
-    console.log('Proyek data with testimoni:', {
-      hasTestimoni,
-      testimoniExists: !!testimoniData?.id,
-      testimoniApproved: testimoniData?.approved,
-      testimoniData: testimoniData
-    })
 
     return { success: true, data: proyekData }
   } catch (error) {
@@ -224,20 +209,8 @@ export async function getProyekByUser(userId: string, role: UserRole) {
 
     // Calculate progress for each project
     const proyekList = await Promise.all(results.map(async (row) => {
-      const calculatedProgress = await calculateProyekProgress(row.projek.id)
-      const finalProgress = calculatedProgress > 0 ? calculatedProgress : (row.projek.progress || 0)
-
-      // ✅ UPDATE: Get testimoni status untuk setiap proyek
-      const testimoniData = await db.query.testimonis.findFirst({
-        where: and(
-          eq(testimonis.proyekId, row.projek.id),
-          eq(testimonis.userId, userId)
-        ),
-        columns: {
-          id: true,
-          approved: true
-        }
-      })
+      // ✅ FORCE SYNC ON LIST VIEW TOO
+      const realTimeProgress = await calculateRealTimeProgress(row.projek.id)
 
       return {
         id: row.projek.id,
@@ -246,7 +219,7 @@ export async function getProyekByUser(userId: string, role: UserRole) {
         deskripsi: row.projek.deskripsi,
         alamat: row.projek.alamat,
         status: row.projek.status,
-        progress: finalProgress,
+        progress: realTimeProgress, // ✅ Use calculated progress
         tanggalMulai: row.projek.mulai,
         tanggalSelesai: row.projek.selesai,
         mandorId: row.projek.mandorId,
@@ -255,7 +228,6 @@ export async function getProyekByUser(userId: string, role: UserRole) {
           nama: row.mandor.nama,
           telpon: row.mandor.telpon
         } : null,
-        hasTestimoni: !!testimoniData?.id && testimoniData.approved === true, // ✅
         lastUpdate: row.projek.lastUpdate,
         createdAt: row.projek.createdAt
       }
@@ -361,7 +333,6 @@ export async function canAddTestimoniToProyek(
       data: {
         canSubmit,
         hasExistingTestimoni: !!existingTestimoni,
-        testimoniApproved: existingTestimoni?.approved || false,
         progress: proyek.progress,
         role
       }
