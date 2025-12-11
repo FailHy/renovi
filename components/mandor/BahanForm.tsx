@@ -1,4 +1,4 @@
-// FILE: components/mandor/nota/BahanFormSection.tsx - COMPLETE FIX
+// FILE: components/mandor/BahanForm.tsx - FIXED UPLOAD INTEGRATION
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
@@ -12,12 +12,12 @@ import {
   deleteBahan
 } from '@/lib/actions/mandor/bahan'
 import toast from 'react-hot-toast'
-import { DeleteConfirmModalBahan } from './modals/DeleteModal'
+import { DeleteConfirmModal } from './modals/DeleteModal'
 
 interface BahanFormSectionProps {
   notaId: string
   proyekId: string
-  existingBahan?: any[] // Jadikan optional
+  existingBahan?: any[]
   milestones?: Array<{ id: string; nama: string }>
   onBahanUpdated: () => void
 }
@@ -63,14 +63,12 @@ interface EditFormData {
 export function BahanFormSection({ 
   notaId, 
   proyekId, 
-  existingBahan, // Bisa undefined
+  existingBahan, 
   milestones = [],
   onBahanUpdated 
 }: BahanFormSectionProps) {
-  // Initialize with safe default
   const [bahanList, setBahanList] = useState<any[]>([])
   
-  // State untuk form tambah bahan baru
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [newBahan, setNewBahan] = useState<BahanFormData>({
     nama: '',
@@ -83,7 +81,6 @@ export function BahanFormSection({
     gambar: []
   })
 
-  // State untuk edit bahan existing
   const [editingBahanId, setEditingBahanId] = useState<string | null>(null)
   const [editFormData, setEditFormData] = useState<EditFormData>({
     nama: '',
@@ -96,16 +93,15 @@ export function BahanFormSection({
     gambar: []
   })
 
-  // State untuk upload gambar
   const [uploadingImage, setUploadingImage] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const editFileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
 
-  // State untuk loading actions
   const [submitting, setSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [bahanToDelete, setBahanToDelete] = useState<{ id: string; nama: string } | null>(null)
 
-  // Initialize bahanList safely
   useEffect(() => {
     if (Array.isArray(existingBahan)) {
       setBahanList(existingBahan)
@@ -115,7 +111,7 @@ export function BahanFormSection({
   }, [existingBahan])
 
   // ========================================
-  // FUNGSI UPLOAD GAMBAR (Base64 - Simple)
+  // FIXED: FUNGSI UPLOAD GAMBAR KE API
   // ========================================
   const handleImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>, 
@@ -128,19 +124,29 @@ export function BahanFormSection({
     setUploadingImage(true)
 
     try {
-      const uploadPromises = Array.from(files).map(file => {
-        return new Promise<string>((resolve, reject) => {
-          // Validasi file
-          if (file.size > 5 * 1024 * 1024) {
-            reject(new Error('File terlalu besar (max 5MB)'))
-            return
-          }
+      const uploadPromises = Array.from(files).map(async (file) => {
+        // Validasi file
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error(`File ${file.name} terlalu besar (max 5MB)`)
+        }
 
-          const reader = new FileReader()
-          reader.onloadend = () => resolve(reader.result as string)
-          reader.onerror = () => reject(new Error('Gagal membaca file'))
-          reader.readAsDataURL(file)
+        // Buat FormData untuk upload
+        const formData = new FormData()
+        formData.append('image', file)
+
+        // Upload ke API
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
         })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Upload gagal')
+        }
+
+        const result = await response.json()
+        return result.url // Return URL dari server
       })
 
       const uploadedUrls = await Promise.all(uploadPromises)
@@ -168,7 +174,20 @@ export function BahanFormSection({
     }
   }
 
-  const removeImage = (index: number, isEdit = false) => {
+  const removeImage = async (index: number, isEdit = false, imageUrl?: string) => {
+    // Jika gambar sudah terupload, hapus dari server
+    if (imageUrl && imageUrl.startsWith('/uploads/')) {
+      try {
+        const filename = imageUrl.split('/').pop()
+        if (filename) {
+          // Call delete endpoint (optional - bisa dibuat nanti)
+          // await fetch(`/api/upload/${filename}`, { method: 'DELETE' })
+        }
+      } catch (error) {
+        console.error('Error deleting image:', error)
+      }
+    }
+
     if (isEdit) {
       setEditFormData(prev => ({
         ...prev,
@@ -188,7 +207,6 @@ export function BahanFormSection({
   const handleAddBahan = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validasi
     if (!newBahan.nama.trim()) {
       toast.error('Nama bahan wajib diisi')
       return
@@ -226,11 +244,7 @@ export function BahanFormSection({
 
       if (result.success) {
         toast.success(result.message || 'Bahan berhasil ditambahkan!', { id: toastId })
-        
-        // Reset form
         resetNewBahanForm()
-        
-        // Refresh data
         onBahanUpdated()
       } else {
         toast.error(result.error || 'Gagal menambahkan bahan', { id: toastId })
@@ -340,6 +354,44 @@ export function BahanFormSection({
     }
   }
 
+  // ========================================
+  // FUNGSI DELETE BAHAN (DENGAN MODAL)
+  // ========================================
+  const openDeleteModal = (bahan: { id: string; nama: string }) => {
+    setBahanToDelete(bahan)
+    setIsDeleteModalOpen(true)
+  }
+
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false)
+    setBahanToDelete(null)
+    setDeletingId(null)
+  }
+
+  const handleDeleteBahan = async () => {
+    if (!bahanToDelete) return
+
+    setDeletingId(bahanToDelete.id)
+    
+    try {
+      const result = await deleteBahan(bahanToDelete.id)
+      
+      if (result.success) {
+        toast.success(result.message || 'Bahan berhasil dihapus!')
+        closeDeleteModal()
+        onBahanUpdated()
+      } else {
+        toast.error(result.error || 'Gagal menghapus bahan')
+        closeDeleteModal()
+      }
+    } catch (error) {
+      console.error('Error deleting bahan:', error)
+      toast.error('Terjadi kesalahan saat menghapus bahan')
+      closeDeleteModal()
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const bahanCount = bahanList.length
 
@@ -471,6 +523,9 @@ export function BahanFormSection({
               {/* Milestone */}
               {milestones.length > 0 && (
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Milestone
+                  </label>
                   <select
                     value={newBahan.milestoneId}
                     onChange={(e) => setNewBahan(prev => ({ ...prev, milestoneId: e.target.value }))}
@@ -535,7 +590,7 @@ export function BahanFormSection({
                       />
                       <button
                         type="button"
-                        onClick={() => removeImage(idx, false)}
+                        onClick={() => removeImage(idx, false, img)}
                         className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X className="w-4 h-4" />
@@ -615,6 +670,7 @@ export function BahanFormSection({
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Nama Bahan */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Nama Bahan
@@ -627,6 +683,7 @@ export function BahanFormSection({
                         />
                       </div>
 
+                      {/* Kategori */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Kategori
@@ -643,6 +700,7 @@ export function BahanFormSection({
                         </select>
                       </div>
 
+                      {/* Harga */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Harga Satuan
@@ -657,6 +715,7 @@ export function BahanFormSection({
                         />
                       </div>
 
+                      {/* Kuantitas & Satuan */}
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -687,6 +746,7 @@ export function BahanFormSection({
                         </div>
                       </div>
 
+                      {/* Status */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Status
@@ -703,6 +763,7 @@ export function BahanFormSection({
                       </div>
                     </div>
 
+                    {/* Deskripsi */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Deskripsi
@@ -751,7 +812,7 @@ export function BahanFormSection({
                               />
                               <button
                                 type="button"
-                                onClick={() => removeImage(idx, true)}
+                                onClick={() => removeImage(idx, true, img)}
                                 className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                               >
                                 <X className="w-3 h-3" />
@@ -837,7 +898,8 @@ export function BahanFormSection({
                             key={idx}
                             src={img}
                             alt={`Bahan ${idx + 1}`}
-                            className="w-20 h-20 object-cover rounded-lg border-2 border-gray-200"
+                            className="w-20 h-20 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-blue-400 transition-colors"
+                            onClick={() => window.open(img, '_blank')}
                           />
                         ))}
                       </div>
@@ -853,7 +915,7 @@ export function BahanFormSection({
                         Edit
                       </button>
                       <button
-                        onClick={() => deleteBahan(bahan.id, bahan.nama)}
+                        onClick={() => openDeleteModal({ id: bahan.id, nama: bahan.nama })}
                         disabled={deletingId === bahan.id}
                         className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                       >
@@ -881,6 +943,16 @@ export function BahanFormSection({
           <p className="text-gray-500">Belum ada bahan yang ditambahkan</p>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={closeDeleteModal}
+        itemName={bahanToDelete?.nama}
+        itemType="bahan"
+        onConfirm={handleDeleteBahan}
+        isLoading={deletingId === bahanToDelete?.id}
+      />
     </div>
   )
 }

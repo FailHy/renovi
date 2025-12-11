@@ -407,13 +407,6 @@ export default function NotaDetailPage({
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <div className="flex justify-between items-center mb-3">
                   <p className="text-sm font-semibold text-gray-700">Foto Nota</p>
-                  <button
-                    onClick={() => window.open(nota.fotoNotaUrl, '_blank')}
-                    className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    Buka di tab baru
-                  </button>
                 </div>
                 <div className="relative max-w-2xl mx-auto">
                   <img 
@@ -422,9 +415,6 @@ export default function NotaDetailPage({
                     className="w-full rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
                     onClick={() => window.open(nota.fotoNotaUrl, '_blank')}
                   />
-                  <div className="absolute bottom-4 right-4 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                    Klik untuk memperbesar
-                  </div>
                 </div>
               </div>
             )}

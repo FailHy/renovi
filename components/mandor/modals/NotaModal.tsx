@@ -1,4 +1,4 @@
-// FILE: components/mandor/modals/NotaModal.tsx - SUPPORT CREATE & UPDATE
+// FILE: components/mandor/modals/NotaModal.tsx - FIXED UPLOAD INTEGRATION
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
@@ -14,7 +14,7 @@ interface NotaModalProps {
   isOpen: boolean
   onClose: () => void
   proyekId: string
-  notaData?: any // Data existing untuk edit mode
+  notaData?: any
   milestones?: Array<{
     id: string
     nama: string
@@ -22,48 +22,6 @@ interface NotaModalProps {
   }>
 }
 
-// Fungsi untuk mengompresi gambar
-const compressImage = (base64String: string, maxWidth = 1024, maxHeight = 1024, quality = 0.7): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.src = base64String
-    
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      let width = img.width
-      let height = img.height
-      
-      if (width > height) {
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width)
-          width = maxWidth
-        }
-      } else {
-        if (height > maxHeight) {
-          width = Math.round((width * maxHeight) / height)
-          height = maxHeight
-        }
-      }
-      
-      canvas.width = width
-      canvas.height = height
-      
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        reject(new Error('Canvas context not found'))
-        return
-      }
-      
-      ctx.drawImage(img, 0, 0, width, height)
-      const compressedBase64 = canvas.toDataURL('image/jpeg', quality)
-      resolve(compressedBase64)
-    }
-    
-    img.onerror = () => reject(new Error('Gagal memuat gambar'))
-  })
-}
-
-// Komponen Alert untuk foto upload
 interface PhotoAlertProps {
   type: 'warning' | 'error' | 'info'
   message: string
@@ -99,55 +57,21 @@ function PhotoAlert({ type, message, onClose }: PhotoAlertProps) {
           <p className={`text-sm font-medium ${textColor[type]}`}>
             {message}
           </p>
-          <div className="mt-2 text-sm">
-            <p className={`${textColor[type]} opacity-90`}>
-              Tips: Gunakan gambar dengan ukuran <strong>maksimal 2MB</strong> dan format <strong>JPG/JPEG</strong> untuk hasil terbaik.
-            </p>
-          </div>
         </div>
         {onClose && (
           <div className="ml-auto pl-3">
-            <div className="-mx-1.5 -my-1.5">
-              <button
-                type="button"
-                onClick={onClose}
-                className={`inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 ${textColor[type]} hover:opacity-75`}
-              >
-                <span className="sr-only">Tutup</span>
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className={`inline-flex rounded-md p-1.5 focus:outline-none ${textColor[type]} hover:opacity-75`}
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
         )}
       </div>
     </div>
   )
-}
-
-// Fungsi untuk parse tanggal dengan aman
-const parseDateSafely = (dateString: string): Date => {
-  try {
-    const [year, month, day] = dateString.split('-').map(Number)
-    
-    if (isNaN(year) || isNaN(month) || isNaN(day)) {
-      throw new Error('Format tanggal tidak valid')
-    }
-    
-    const date = new Date(year, month - 1, day)
-    
-    if (
-      date.getFullYear() !== year ||
-      date.getMonth() !== month - 1 ||
-      date.getDate() !== day
-    ) {
-      throw new Error('Tanggal tidak valid')
-    }
-    
-    return date
-  } catch (error) {
-    console.error('Error parsing date:', error)
-    return new Date()
-  }
 }
 
 export function NotaModal({ 
@@ -161,7 +85,6 @@ export function NotaModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadAlert, setUploadAlert] = useState<{type: 'warning' | 'error' | 'info', message: string} | null>(null)
-  const [totalPhotoSize, setTotalPhotoSize] = useState(0)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   
@@ -172,7 +95,7 @@ export function NotaModal({
     milestoneId: '',
   })
 
-  // Inisialisasi form data jika mode edit
+  // Inisialisasi form data untuk edit mode
   useEffect(() => {
     if (notaData && isOpen) {
       setFormData({
@@ -183,70 +106,31 @@ export function NotaModal({
         fotoNotaUrl: notaData.fotoNotaUrl || '',
         milestoneId: notaData.milestoneId || '',
       })
-      
-      // Hitung ulang ukuran foto
-      if (notaData.fotoNotaUrl) {
-        const size = calculateBase64Size(notaData.fotoNotaUrl)
-        setTotalPhotoSize(size)
-      }
     } else {
-      // Reset form untuk create mode
       resetForm()
     }
   }, [notaData, isOpen])
 
-  // Hitung total ukuran foto
-  useEffect(() => {
-    let totalSize = 0
-    
-    if (formData.fotoNotaUrl) {
-      totalSize += calculateBase64Size(formData.fotoNotaUrl)
-    }
-    
-    setTotalPhotoSize(totalSize)
-    
-    if (totalSize > 1 * 1024 * 1024) {
-      setUploadAlert({
-        type: 'warning',
-        message: `Ukuran foto ${formatBytes(totalSize)} cukup besar. Disarankan untuk mengoptimalkan.`
-      })
-    } else {
-      setUploadAlert(null)
-    }
-  }, [formData.fotoNotaUrl])
-
-  // Fungsi untuk menghitung ukuran base64
-  const calculateBase64Size = (base64String: string): number => {
-    if (!base64String) return 0
-    const padding = (base64String.endsWith('==')) ? 2 : (base64String.endsWith('=')) ? 1 : 0
-    return (base64String.length * 3) / 4 - padding
-  }
-
-  // Format bytes ke readable format
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-  }
-
-  // Upload foto nota utama dengan kompresi
+  // =============================================
+  // FIXED: Upload gambar ke API /api/upload
+  // =============================================
   const handleNotaFotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
     const file = files[0]
     
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Ukuran file maksimal 2MB')
+    // Validasi ukuran file
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Ukuran file maksimal 5MB')
       setUploadAlert({
         type: 'error',
-        message: `Ukuran file ${formatBytes(file.size)} melebihi batas maksimal 2MB.`
+        message: `Ukuran file ${formatBytes(file.size)} melebihi batas maksimal 5MB.`
       })
       return
     }
 
+    // Validasi tipe file
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
       toast.error('Hanya file JPG, PNG, dan WebP yang diperbolehkan')
@@ -258,65 +142,75 @@ export function NotaModal({
     }
 
     setIsUploading(true)
+    setUploadAlert({
+      type: 'info',
+      message: 'Mengupload foto...'
+    })
 
     try {
-      const reader = new FileReader()
+      // Buat FormData untuk upload
+      const uploadFormData = new FormData()
+      uploadFormData.append('image', file)
       
-      reader.onloadend = async () => {
-        try {
-          let base64String = reader.result as string
-          
-          if (file.size > 500 * 1024) {
-            base64String = await compressImage(base64String, 1024, 1024, 0.7)
-            toast.success('Foto dioptimalkan untuk mengurangi ukuran')
-          }
-          
-          setFormData(prev => ({ ...prev, fotoNotaUrl: base64String }))
-          toast.success('Foto nota berhasil ditambahkan')
-          
-          setUploadAlert({
-            type: 'info',
-            message: `Foto nota berhasil diupload (${formatBytes(calculateBase64Size(base64String))})`
-          })
-        } catch (error) {
-          toast.error('Gagal mengoptimalkan gambar')
-        } finally {
-          setIsUploading(false)
+      // Jika mode edit dan ada foto lama, kirim oldFilename untuk dihapus
+      if (notaData?.fotoNotaUrl) {
+        // Extract filename dari URL (misal: /uploads/artikel-123-abc.jpg -> artikel-123-abc.jpg)
+        const oldFilename = notaData.fotoNotaUrl.split('/').pop()
+        if (oldFilename) {
+          uploadFormData.append('oldFilename', oldFilename)
         }
       }
-      
-      reader.onerror = () => {
-        toast.error('Gagal membaca file')
-        setIsUploading(false)
+
+      // Upload ke API
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: uploadFormData
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Upload gagal')
       }
+
+      const result = await response.json()
       
-      reader.readAsDataURL(file)
+      // Set URL foto dari response
+      setFormData(prev => ({ ...prev, fotoNotaUrl: result.url }))
+      
+      toast.success('Foto nota berhasil diupload')
+      setUploadAlert({
+        type: 'info',
+        message: `Foto berhasil diupload: ${file.name}`
+      })
       
     } catch (error) {
       console.error('Upload error:', error)
-      toast.error('Terjadi kesalahan saat upload')
-      setIsUploading(false)
+      toast.error(error instanceof Error ? error.message : 'Gagal mengupload foto')
+      setUploadAlert({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Terjadi kesalahan saat upload'
+      })
     } finally {
+      setIsUploading(false)
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
     }
   }
 
+  // Format bytes ke readable format
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validasi ukuran total foto
-    if (totalPhotoSize > 5 * 1024 * 1024) {
-      setUploadAlert({
-        type: 'error',
-        message: `Total ukuran foto ${formatBytes(totalPhotoSize)} melebihi batas maksimal 5MB. Harap hapus foto atau gunakan gambar dengan ukuran lebih kecil.`
-      })
-      toast.error('Ukuran foto terlalu besar. Mohon optimalkan foto sebelum menyimpan.')
-      return
-    }
-    
-    // Validation lainnya
+    // Validation
     if (!formData.namaToko.trim()) {
       toast.error('Nama toko harus diisi')
       return
@@ -331,20 +225,11 @@ export function NotaModal({
 
     try {
       // Parse tanggal dengan aman
-      let tanggalBelanjaDate: Date
+      const tanggalBelanjaDate = new Date(formData.tanggalBelanja)
+      tanggalBelanjaDate.setHours(12, 0, 0, 0)
       
-      try {
-        tanggalBelanjaDate = parseDateSafely(formData.tanggalBelanja)
-        tanggalBelanjaDate.setHours(12, 0, 0, 0)
-        
-        if (isNaN(tanggalBelanjaDate.getTime())) {
-          throw new Error('Tanggal tidak valid')
-        }
-      } catch (error) {
-        console.error('Error parsing tanggal:', error)
-        toast.error('Format tanggal tidak valid')
-        setIsSubmitting(false)
-        return
+      if (isNaN(tanggalBelanjaDate.getTime())) {
+        throw new Error('Tanggal tidak valid')
       }
 
       if (notaData) {
@@ -355,15 +240,13 @@ export function NotaModal({
           tanggalBelanja: tanggalBelanjaDate.toISOString(),
         }
 
-        console.log('Update nota dengan data:', updateData)
-
         const result = await updateNota(notaData.id, updateData)
 
         if (result.success) {
           toast.success('Nota berhasil diperbarui')
           onClose()
           resetForm()
-          router.refresh() // Refresh halaman untuk update data
+          router.refresh()
         } else {
           toast.error(result.error || 'Gagal memperbarui nota')
         }
@@ -377,13 +260,6 @@ export function NotaModal({
           milestoneId: formData.milestoneId.trim() || undefined,
           bahan_items: []
         }
-
-        console.log('Buat nota baru dengan data:', {
-          ...notaData,
-          tanggalBelanja: new Date(notaData.tanggalBelanja).toLocaleString('id-ID'),
-          fotoNotaUrl: notaData.fotoNotaUrl ? 'ADA' : 'KOSONG',
-          bahan_items_length: notaData.bahan_items.length
-        })
 
         const result = await createNotaWithBahan(notaData)
 
@@ -417,7 +293,6 @@ export function NotaModal({
       milestoneId: '',
     })
     setUploadAlert(null)
-    setTotalPhotoSize(0)
   }
 
   const handleClose = () => {
@@ -425,7 +300,6 @@ export function NotaModal({
     onClose()
   }
 
-  // Helper untuk menentukan mode
   const isEditMode = !!notaData
 
   return (
@@ -451,11 +325,6 @@ export function NotaModal({
             <h3 className="text-sm font-semibold text-blue-900">
               {isEditMode ? 'Update Informasi Nota' : 'Informasi Nota'}
             </h3>
-            <div className="text-xs text-gray-500">
-              Ukuran foto: <span className={`font-semibold ${totalPhotoSize > 1 * 1024 * 1024 ? 'text-yellow-600' : 'text-green-600'}`}>
-                {formatBytes(totalPhotoSize)}
-              </span>
-            </div>
           </div>
           
           <div className="space-y-4">
@@ -522,9 +391,6 @@ export function NotaModal({
                     </svg>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Hubungkan nota dengan milestone untuk grouping yang lebih baik
-                </p>
               </div>
             </div>
 
@@ -539,7 +405,6 @@ export function NotaModal({
                     type="button"
                     onClick={() => {
                       setFormData({...formData, fotoNotaUrl: ''})
-                      setTotalPhotoSize(0)
                       setUploadAlert(null)
                     }}
                     className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1"
@@ -556,26 +421,28 @@ export function NotaModal({
                 onChange={handleNotaFotoUpload}
                 accept=".jpg,.jpeg,.png,.webp"
                 className="hidden"
+                disabled={isUploading}
               />
               
               {!formData.fotoNotaUrl ? (
                 <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-48 border-2 border-dashed border-blue-300 rounded-lg p-4 text-center cursor-pointer hover:border-blue-400 transition-colors bg-white hover:bg-blue-50 flex flex-col items-center justify-center"
+                  onClick={() => !isUploading && fileInputRef.current?.click()}
+                  className={`w-full h-48 border-2 border-dashed border-blue-300 rounded-lg p-4 text-center ${
+                    isUploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:border-blue-400 hover:bg-blue-50'
+                  } transition-colors bg-white flex flex-col items-center justify-center`}
                 >
                   {isUploading ? (
                     <div className="flex flex-col items-center">
                       <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-2" />
-                      <p className="text-sm text-gray-600">Mengoptimalkan gambar...</p>
+                      <p className="text-sm text-gray-600">Mengupload foto...</p>
                     </div>
                   ) : (
                     <>
                       <Upload className="w-10 h-10 text-blue-400 mx-auto mb-3" />
                       <p className="text-base font-medium text-gray-700">
-                        {isEditMode ? 'Ganti foto nota' : 'Klik untuk upload foto nota'}
+                        {isEditMode ? 'Klik untuk ganti foto nota' : 'Klik untuk upload foto nota'}
                       </p>
-                      <p className="text-sm text-gray-500 mt-1">JPG, PNG, WebP (Maks. 2MB)</p>
-                      <p className="text-xs text-gray-400 mt-2">Gambar akan dioptimalkan otomatis</p>
+                      <p className="text-sm text-gray-500 mt-1">JPG, PNG, WebP (Maks. 5MB)</p>
                     </>
                   )}
                 </div>
@@ -586,14 +453,10 @@ export function NotaModal({
                     alt="Foto nota"
                     className="w-full h-48 object-cover rounded-lg border-2 border-blue-200"
                   />
-                  <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                    {formatBytes(calculateBase64Size(formData.fotoNotaUrl))}
-                  </div>
                   <button
                     type="button"
                     onClick={() => {
                       setFormData({...formData, fotoNotaUrl: ''})
-                      setTotalPhotoSize(0)
                       setUploadAlert(null)
                     }}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 shadow-lg"
@@ -645,7 +508,7 @@ export function NotaModal({
             type="button"
             variant="outline"
             onClick={handleClose}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isUploading}
             className="min-w-[100px]"
           >
             Batal
@@ -653,11 +516,9 @@ export function NotaModal({
           
           <Button
             type="submit"
-            disabled={isSubmitting || !formData.fotoNotaUrl || totalPhotoSize > 5 * 1024 * 1024}
+            disabled={isSubmitting || isUploading || !formData.fotoNotaUrl}
             className={`min-w-[140px] shadow-lg ${
-              totalPhotoSize > 5 * 1024 * 1024 
-                ? 'bg-red-600 hover:bg-red-700 text-white' 
-                : !formData.fotoNotaUrl
+              !formData.fotoNotaUrl
                 ? 'bg-gray-400 cursor-not-allowed text-white'
                 : isEditMode
                 ? 'bg-green-600 hover:bg-green-700 text-white'
@@ -676,19 +537,6 @@ export function NotaModal({
             )}
           </Button>
         </div>
-        
-        {/* Informasi validasi */}
-        {!formData.fotoNotaUrl && (
-          <div className="text-xs text-red-600 text-center pt-2">
-            <p>⚠️ Foto nota wajib diupload sebelum menyimpan</p>
-          </div>
-        )}
-        
-        {totalPhotoSize > 5 * 1024 * 1024 && (
-          <div className="text-xs text-red-600 text-center pt-2">
-            <p>⚠️ Ukuran foto melebihi batas 5MB. Harap hapus atau optimalkan foto sebelum menyimpan.</p>
-          </div>
-        )}
       </form>
     </Modal>
   )

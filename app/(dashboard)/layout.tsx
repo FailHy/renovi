@@ -21,14 +21,14 @@ export default async function DashboardLayout({
   }
 
   // Validate role
-  const allowedRoles = ['admin', 'klien', 'mandor'] as const
+  const allowedRoles = ['admin', 'pelanggan', 'mandor'] as const
   type AllowedRole = typeof allowedRoles[number]
   
   const userRole = session.user.role as string
 
   // Check if role is valid
   if (!allowedRoles.includes(userRole as AllowedRole)) {
-    redirect('/unauthorized')
+    redirect('/login')
   }
 
   return (

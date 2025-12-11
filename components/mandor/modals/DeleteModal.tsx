@@ -33,14 +33,19 @@ export function DeleteConfirmModal({
                        itemType === 'proyek' ? 'Proyek' : 'Item'}`
 
   // Default description berdasarkan item type
-  const defaultDescription = itemType === 'bahan' 
+  const defaultDescription = 
+  itemType === 'bahan' 
     ? 'Apakah Anda yakin ingin menghapus bahan ini?'
+
     : itemType === 'milestone'
     ? 'Apakah Anda yakin ingin menghapus milestone ini?'
+
     : itemType === 'nota'
     ? 'Apakah Anda yakin ingin menghapus nota ini?'
+
     : itemType === 'proyek'
     ? 'Apakah Anda yakin ingin menghapus proyek ini?'
+
     : 'Apakah Anda yakin ingin menghapus item ini?'
 
   // Warning message berdasarkan item type
@@ -60,65 +65,75 @@ export function DeleteConfirmModal({
   }
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={title || defaultTitle}
-      size="md"
-    >
-      <div className="space-y-4">
-        {/* Icon & Header */}
-        <div className="flex items-center justify-center mb-4">
-          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-            <AlertTriangle className="w-6 h-6 text-red-600" />
-          </div>
+  <Modal
+    isOpen={isOpen}
+    onClose={onClose}
+    title={title || defaultTitle}
+    size="sm"
+  >
+    <div className="space-y-5 px-2 py-1">
+      {/* Icon Warning */}
+      <div className="flex justify-center mb-3">
+        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center border-4 border-red-100">
+          <AlertTriangle className="w-7 h-7 text-red-500" />
         </div>
+      </div>
 
-        {/* Description */}
-        <div className="text-center">
-          <p className="text-gray-700 mb-2">
+      {/* Main Content */}
+      <div className="text-center space-y-3">
+        <div className="space-y-1">
+          <h3 className="text-base font-semibold text-gray-900">
             {description || defaultDescription}
-          </p>
+          </h3>
           
           {itemName && (
-            <div className="inline-block px-4 py-2 bg-red-50 border border-red-200 rounded-lg my-3">
-              <p className="font-semibold text-red-600">{itemName}</p>
+            <div className="inline-flex items-center justify-center px-4 py-2.5 bg-red-50 rounded-lg border border-red-100 mt-2">
+              <span className="font-bold text-red-700 text-sm">{itemName}</span>
             </div>
           )}
         </div>
 
-        {/* Warning Box */}
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-red-700">
-              ⚠️ {getWarningMessage()}
+        {/* Warning Message */}
+        <div className="px-4 py-3 bg-amber-50 border border-amber-100 rounded-lg">
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-amber-700 leading-relaxed text-left">
+              {getWarningMessage()}
             </p>
           </div>
         </div>
-
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isLoading}
-            className="border-gray-300 text-gray-700 hover:bg-gray-50 px-5"
-          >
-            Batal
-          </Button>
-          <Button
-            variant="danger"
-            onClick={onConfirm}
-            disabled={isLoading}
-            isLoading={isLoading}
-            className="bg-red-600 hover:bg-red-700 px-5"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Ya, Hapus
-          </Button>
-        </div>
       </div>
-    </Modal>
-  )
+
+      {/* Action Buttons */}
+      <div className="flex justify-end gap-3 pt-5 border-t border-gray-100">
+        <Button
+          variant="outline"
+          onClick={onClose}
+          disabled={isLoading}
+          className="px-5 py-2.5 border-gray-300 text-gray-700 hover:bg-gray-50 font-medium text-sm transition-colors"
+        >
+          Batal
+        </Button>
+        <Button
+          variant="danger"
+          onClick={onConfirm}
+          disabled={isLoading}
+          className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium text-sm transition-colors flex items-center justify-center gap-2 min-w-[100px]"
+        >
+          {isLoading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span>Menghapus...</span>
+            </>
+          ) : (
+            <>
+              <Trash2 className="w-4 h-4" />
+              <span>Ya, Hapus</span>
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  </Modal>
+)
 }

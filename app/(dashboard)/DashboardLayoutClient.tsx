@@ -1,7 +1,4 @@
 // FILE: app/(dashboard)/DashboardLayoutClient.tsx
-// ========================================
-// CLIENT COMPONENT - RESPONSIVE LAYOUT
-// ========================================
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -10,7 +7,7 @@ import { Menu, X } from 'lucide-react'
 
 interface DashboardLayoutClientProps {
   children: React.ReactNode
-  role: 'admin' | 'klien' | 'mandor'
+  role: 'admin' | 'pelanggan' | 'mandor'
   userName: string
   userEmail: string
 }
