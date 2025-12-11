@@ -82,13 +82,13 @@ const menuItems = {
     { 
       icon: <LayoutDashboard className="w-5 h-5 flex-shrink-0" />, 
       label: 'Beranda', 
-      href: '/pelanggan',
+      href: '/klien',
       exact: true
     },
     { 
       icon: <FolderKanban className="w-5 h-5 flex-shrink-0" />, 
       label: 'Proyek Saya', 
-      href: '/pelanggan/proyek' 
+      href: '/klien/proyek' 
     },
   ],
 }

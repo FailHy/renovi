@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Check, X, Search, Star, MessageSquare, User } from 'lucide-react'
+import { Check, X, Search, Star, MessageSquare, User, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -11,26 +11,33 @@ import { approveTestimoni, rejectTestimoni, getTestimonis } from '@/lib/actions/
 import { formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
 
-// ✅ Type Definition
+// ✅ Type Definition - UPDATE SESUAI DENGAN ACTION BARU
 interface TestimoniData {
   id: string
   komentar: string
   rating: number
   gambar: string | null
   approved: boolean
-  approvedAt: string | null
-  posting: string
+  approvedAt: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  userId: string
+  projectId: string
+  approvedBy: string | null
   user: {
-    nama: string
+    id: string
+    name: string
     email: string
-  }
-  projek: {
-    nama: string
-    tipeLayanan: string
-  }
+  } | null
+  project: {
+    id: string
+    name: string
+    type: string
+  } | null
   approver: {
-    nama: string
-    email?: string
+    id: string
+    name: string
+    email: string
   } | null
 }
 
@@ -54,10 +61,14 @@ export default function ManajemenTestimoniPage() {
   const fetchTestimonis = async () => {
     try {
       setIsLoading(true)
+      console.log('🔄 Fetching testimonials from admin...')
+      
       const result = await getTestimonis()
       
+      console.log('📊 API Response:', result)
+      
       if (result.success && result.data) {
-        // Transform data dari database ke format yang sesuai
+        // ✅ UPDATE: Transform data dari database ke format yang sesuai
         const formattedTestimonis: TestimoniData[] = result.data.map((item: any) => ({
           id: item.id,
           komentar: item.comment || item.komentar || '',
@@ -65,28 +76,37 @@ export default function ManajemenTestimoniPage() {
           gambar: item.image || item.gambar || null,
           approved: item.approved || false,
           approvedAt: item.approvedAt || null,
-          posting: item.createdAt || item.posting || new Date().toISOString(),
+          createdAt: item.createdAt || new Date().toISOString(),
+          updatedAt: item.updatedAt || new Date().toISOString(),
+          userId: item.userId,
+          projectId: item.projectId,
+          approvedBy: item.approvedBy,
           user: {
-            nama: item.user?.name || item.user?.nama || 'N/A',
+            id: item.user?.id || '',
+            name: item.user?.name || item.user?.nama || 'N/A',
             email: item.user?.email || 'N/A'
           },
-          projek: {
-            nama: item.project?.name || item.project?.nama || 'Proyek Tanpa Nama',
-            tipeLayanan: item.project?.type || item.project?.tipeLayanan || 'Layanan'
+          project: {
+            id: item.project?.id || '',
+            name: item.project?.name || item.project?.nama || 'Proyek Tanpa Nama',
+            type: item.project?.type || item.project?.tipeLayanan || 'Layanan'
           },
-          approver: item.approvedBy ? {
-            nama: item.approvedBy.name || item.approvedBy.nama || 'Administrator',
-            email: item.approvedBy.email
+          approver: item.approver ? {
+            id: item.approver.id || '',
+            name: item.approver.name || item.approver.nama || 'Administrator',
+            email: item.approver.email || ''
           } : null
         }))
         
+        console.log(`✅ Loaded ${formattedTestimonis.length} testimonials`)
         setTestimonis(formattedTestimonis)
-        toast.success('Data testimoni berhasil dimuat')
+        toast.success(`Data testimoni berhasil dimuat (${formattedTestimonis.length} data)`)
       } else {
-        toast.error('Gagal memuat testimoni')
+        console.error('❌ Failed to load testimonials:', result.error)
+        toast.error(result.error || 'Gagal memuat testimoni')
       }
     } catch (error) {
-      console.error('Error fetching testimonials:', error)
+      console.error('❌ Error fetching testimonials:', error)
       toast.error('Terjadi kesalahan saat memuat data')
     } finally {
       setIsLoading(false)
@@ -95,9 +115,9 @@ export default function ManajemenTestimoniPage() {
 
   const filteredTestimonis = testimonis.filter((testimoni) => {
     const matchSearch =
-      testimoni.user.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      testimoni.komentar.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      testimoni.projek.nama.toLowerCase().includes(searchTerm.toLowerCase())
+      testimoni.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      testimoni.komentar?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      testimoni.project?.name?.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchStatus =
       filterStatus === ''
@@ -144,7 +164,8 @@ export default function ManajemenTestimoniPage() {
                     approved: true,
                     approvedAt: new Date().toISOString(),
                     approver: {
-                      nama: 'Administrator Renovi',
+                      id: result.data?.approvedBy || '',
+                      name: 'Administrator Renovi',
                       email: 'admin@renovi.com'
                     }
                   }
@@ -167,6 +188,9 @@ export default function ManajemenTestimoniPage() {
         }
       }
 
+      // Refresh data setelah action
+      fetchTestimonis()
+      
       setIsActionModalOpen(false)
       setActionTestimoni(null)
       setIsDetailModalOpen(false)
@@ -214,6 +238,7 @@ export default function ManajemenTestimoniPage() {
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Memuat testimoni...</p>
+            <p className="text-sm text-gray-500 mt-2">Mohon tunggu sebentar</p>
           </div>
         </div>
       </div>
@@ -248,14 +273,14 @@ export default function ManajemenTestimoniPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">
-                  Pending Review
+                  Menunggu Approval
                 </p>
                 <p className="text-3xl font-bold text-amber-600">
                   {stats.pending}
                 </p>
               </div>
               <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center">
-                <X className="w-6 h-6 text-amber-600" />
+                <Clock className="w-6 h-6 text-amber-600" />
               </div>
             </div>
           </CardContent>
@@ -366,9 +391,9 @@ export default function ManajemenTestimoniPage() {
                       <User className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">{testimoni.user.nama}</p>
+                      <p className="font-semibold text-gray-900">{testimoni.user?.name || 'N/A'}</p>
                       <p className="text-sm text-gray-600">
-                        {formatDate(testimoni.posting)}
+                        {formatDate(testimoni.createdAt as string)}
                       </p>
                     </div>
                   </div>
@@ -388,9 +413,9 @@ export default function ManajemenTestimoniPage() {
 
                 {/* Project Info */}
                 <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-sm font-medium text-gray-900">{testimoni.projek.nama}</p>
+                  <p className="text-sm font-medium text-gray-900">{testimoni.project?.name || 'Proyek Tanpa Nama'}</p>
                   <p className="text-xs text-gray-600 mt-1">
-                    {testimoni.projek.tipeLayanan}
+                    {testimoni.project?.type || 'Layanan'}
                   </p>
                 </div>
 
@@ -449,10 +474,10 @@ export default function ManajemenTestimoniPage() {
               </div>
               <div>
                 <p className="font-semibold text-lg text-gray-900">
-                  {selectedTestimoni.user.nama}
+                  {selectedTestimoni.user?.name || 'N/A'}
                 </p>
                 <p className="text-sm text-gray-600">
-                  {selectedTestimoni.user.email}
+                  {selectedTestimoni.user?.email || 'N/A'}
                 </p>
               </div>
             </div>
@@ -476,9 +501,9 @@ export default function ManajemenTestimoniPage() {
                 Proyek
               </label>
               <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="font-medium text-gray-900">{selectedTestimoni.projek.nama}</p>
+                <p className="font-medium text-gray-900">{selectedTestimoni.project?.name || 'Proyek Tanpa Nama'}</p>
                 <p className="text-sm text-gray-600 mt-1">
-                  {selectedTestimoni.projek.tipeLayanan}
+                  {selectedTestimoni.project?.type || 'Layanan'}
                 </p>
               </div>
             </div>
@@ -526,7 +551,7 @@ export default function ManajemenTestimoniPage() {
                 <label className="text-sm font-medium text-gray-700 mb-1 block">
                   Tanggal Posting
                 </label>
-                <p className="text-gray-900">{formatDate(selectedTestimoni.posting)}</p>
+                <p className="text-gray-900">{formatDate(selectedTestimoni.createdAt as string)}</p>
               </div>
             </div>
 
@@ -536,14 +561,14 @@ export default function ManajemenTestimoniPage() {
                   <label className="text-sm font-medium text-gray-700 mb-1 block">
                     Approved Oleh
                   </label>
-                  <p className="text-gray-900">{selectedTestimoni.approver.nama}</p>
+                  <p className="text-gray-900">{selectedTestimoni.approver.name || 'Administrator'}</p>
                 </div>
                 {selectedTestimoni.approvedAt && (
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-1 block">
                       Tanggal Approve
                     </label>
-                    <p className="text-gray-900">{formatDate(selectedTestimoni.approvedAt)}</p>
+                    <p className="text-gray-900">{formatDate(selectedTestimoni.approvedAt as string)}</p>
                   </div>
                 )}
               </div>
@@ -594,7 +619,7 @@ export default function ManajemenTestimoniPage() {
             <span className="font-semibold text-gray-900">
               {actionType === 'approve' ? 'menyetujui' : 'menolak'}
             </span>{' '}
-            testimoni dari <span className="font-semibold text-gray-900">{actionTestimoni?.user.nama}</span>?
+            testimoni dari <span className="font-semibold text-gray-900">{actionTestimoni?.user?.name || 'Klien'}</span>?
           </p>
           
           {actionType === 'reject' && (

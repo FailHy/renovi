@@ -139,36 +139,38 @@ export default async function DetailProyekKlienPage({
       bahan = []
     }
 
-    // ✅ Transform proyek data untuk match dengan UI
-    const proyekForClient = {
-      id: proyek.id,
-      nama: proyek.nama,
-      tipeLayanan: proyek.tipeLayanan,
-      deskripsi: proyek.deskripsi,
-      alamat: proyek.alamat,
-      status: proyek.status,
-      progress: proyek.progress,
-      tanggalMulai: proyek.tanggalMulai,
-      tanggalSelesai: proyek.tanggalSelesai,
-      mandor: proyek.mandor ? {
-        id: proyek.mandor.id,
-        nama: proyek.mandor.nama,
-        telpon: proyek.mandor.telpon
-      } : {
-        id: '',
-        nama: 'Belum ditentukan',
-        telpon: null
-      },
-      hasTestimoni: proyek.hasTestimoni
-    }
+    // ✅ Transform proyek data untuk match dengan UI - PERBAIKI INI!
+const proyekForClient = {
+  id: proyek.id,
+  nama: proyek.nama,
+  tipeLayanan: proyek.tipeLayanan,
+  deskripsi: proyek.deskripsi,
+  alamat: proyek.alamat,
+  status: proyek.status,
+  progress: proyek.progress,
+  tanggalMulai: proyek.tanggalMulai,
+  tanggalSelesai: proyek.tanggalSelesai,
+  mandor: proyek.mandor ? {
+    id: proyek.mandor.id,
+    nama: proyek.mandor.nama,
+    telpon: proyek.mandor.telpon
+  } : {
+    id: '',
+    nama: 'Belum ditentukan',
+    telpon: null
+  },
+  hasTestimoni: proyek.hasTestimoni, // Masih ada untuk backward compatibility
+  testimoniData: proyek.testimoniData // Menambahkan
+}
 
-    console.log('=== PAGE DATA SUMMARY ===')
-    console.log('- Project:', proyekForClient.nama)
-    console.log('- Mandor:', proyekForClient.mandor.nama)
-    console.log('- Milestones:', milestones.length)
-    console.log('- Bahan items:', bahan.length)
-    console.log('- Has Testimoni:', proyekForClient.hasTestimoni)
-    console.log('========================')
+console.log('=== PAGE DATA SUMMARY ===')
+console.log('- Project:', proyekForClient.nama)
+console.log('- Mandor:', proyekForClient.mandor.nama)
+console.log('- Milestones:', milestones.length)
+console.log('- Bahan items:', bahan.length)
+console.log('- Has Testimoni:', proyekForClient.hasTestimoni)
+console.log('- Testimoni Data:', proyekForClient.testimoniData) // ✅ Tambah log ini
+console.log('========================')
 
     return (
       <DetailProyekKlienClient

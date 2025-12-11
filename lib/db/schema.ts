@@ -1,13 +1,8 @@
 // FILE: db/schema.ts
-// ========================================
-// SIMPLIFIED SCHEMA - WITHOUT APPROVAL WORKFLOW
-// ========================================
 import { pgTable, text, timestamp, integer, decimal, boolean, uuid, pgEnum } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
-// ========================================
 // ENUMS
-// ========================================
 export const roleEnum = pgEnum('role', ['admin', 'mandor', 'pelanggan'])
 
 export const statusProyekEnum = pgEnum('status_proyek', [
@@ -29,8 +24,6 @@ export const statusBahanEnum = pgEnum('status_bahan', [
   'Rusak'
 ])
 
-// ⚠️ REMOVED: statusNotaEnum (approval workflow dihapus)
-
 export const satuanEnum = pgEnum('satuan', [
   'pcs',
   'kg',
@@ -49,9 +42,7 @@ export const satuanEnum = pgEnum('satuan', [
   'lembar'
 ])
 
-// ========================================
 // TABLE: USERS
-// ========================================
 export const users = pgTable('user', {
   id: uuid('id').defaultRandom().primaryKey(),
   nama: text('nama').notNull(),
@@ -65,157 +56,98 @@ export const users = pgTable('user', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
-// ========================================
 // TABLE: PROJEKS
-// ========================================
 export const projeks = pgTable('projek', {
   id: uuid('id').defaultRandom().primaryKey(),
   pelangganId: uuid('pelanggan_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   mandorId: uuid('mandor_id').references(() => users.id, { onDelete: 'set null' }),
-  
   nama: text('nama').notNull(),
   tipeLayanan: text('tipe_layanan').notNull(),
   deskripsi: text('deskripsi').notNull(),
   alamat: text('alamat').notNull(),
   telpon: text('telpon'),
   gambar: text('gambar').array(),
-  
   status: statusProyekEnum('status').notNull().default('Perencanaan'),
   progress: integer('progress').default(0).notNull(),
-  
+
+  // verif
+  isVerifiedComplete: boolean('is_verified_complete').default(false).notNull(),
+  verifiedBy: uuid('verified_by').references(() => users.id, { onDelete: 'set null' }),
+  verifiedAt: timestamp('verified_at'),
+  verificationNote: text('verification_note'),
+
   mulai: timestamp('mulai').notNull(),
   selesai: timestamp('selesai'),
-  
   lastUpdate: timestamp('last_update').defaultNow().notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
-// ========================================
 // TABLE: MILESTONES
-// ========================================
 export const milestones = pgTable('milestone', {
   id: uuid('id').defaultRandom().primaryKey(),
   proyekId: uuid('proyek_id').notNull().references(() => projeks.id, { onDelete: 'cascade' }),
-  
   nama: text('nama').notNull(),
   deskripsi: text('deskripsi'),
   gambar: text('gambar').array(),
-  
   status: statusMilestoneEnum('status').notNull().default('Belum Dimulai'),
-  
   tanggal: timestamp('tanggal').notNull(),
   mulai: timestamp('mulai'),
   selesai: timestamp('selesai'),
-  
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
-// ========================================
-// TABLE: NOTA BELANJA (SIMPLIFIED)
-// ========================================
+// TABLE: NOTA BELANJA
 export const notaBelanjas = pgTable('nota_belanja', {
   id: uuid('id').defaultRandom().primaryKey(),
-  
-  // Relasi
-  proyekId: uuid('proyek_id')
-    .notNull()
-    .references(() => projeks.id, { onDelete: 'cascade' }),
-  
-  milestoneId: uuid('milestone_id')
-    .references(() => milestones.id, { onDelete: 'set null' }),
-  
-  // User tracking (hanya creator)
-  createdBy: uuid('created_by')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  
-  // ⚠️ REMOVED: approvedBy (no approval workflow)
-  
-  // Informasi nota
+  proyekId: uuid('proyek_id').notNull().references(() => projeks.id, { onDelete: 'cascade' }),
+  milestoneId: uuid('milestone_id').references(() => milestones.id, { onDelete: 'set null' }),
+  createdBy: uuid('created_by').notNull().references(() => users.id, { onDelete: 'cascade' }),
   nomorNota: text('nomor_nota'),
   namaToko: text('nama_toko'),
-  fotoNotaUrl: text('foto_nota_url').notNull(), // ✅ KEPT
-  
-  tanggalBelanja: timestamp('tanggal_belanja').notNull(), // ✅ KEPT
-  
-  // ⚠️ REMOVED: status (no approval workflow)
-  // ⚠️ REMOVED: catatanApproval
-  
-  // Timestamps
+  fotoNotaUrl: text('foto_nota_url').notNull(),
+  tanggalBelanja: timestamp('tanggal_belanja').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  // ⚠️ REMOVED: approvedAt
 })
 
-// ========================================
 // TABLE: BAHAN HARIANS
-// ========================================
 export const bahanHarians = pgTable('bahan_harian', {
   id: uuid('id').defaultRandom().primaryKey(),
-  
-  notaId: uuid('nota_id')
-    .notNull()
-    .references(() => notaBelanjas.id, { onDelete: 'cascade' }),
-  
-  proyekId: uuid('proyek_id')
-    .notNull()
-    .references(() => projeks.id, { onDelete: 'cascade' }),
-  
-  milestoneId: uuid('milestone_id')
-    .references(() => milestones.id, { onDelete: 'set null' }),
-  
+  notaId: uuid('nota_id').notNull().references(() => notaBelanjas.id, { onDelete: 'cascade' }),
+  proyekId: uuid('proyek_id').notNull().references(() => projeks.id, { onDelete: 'cascade' }),
+  milestoneId: uuid('milestone_id').references(() => milestones.id, { onDelete: 'set null' }),
   nama: text('nama').notNull(),
   deskripsi: text('deskripsi'),
   gambar: text('gambar').array(),
-  
   harga: decimal('harga', { precision: 12, scale: 2 }).notNull(),
   kuantitas: decimal('kuantitas', { precision: 10, scale: 2 }).default('1').notNull(),
-  
   satuan: satuanEnum('satuan').notNull().default('pcs'),
-  
   kategori: text('kategori'),
-  
   status: statusBahanEnum('status').notNull().default('Digunakan'),
-  
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
-// ⚠️ REMOVED: fotoNotas table (tabel foto_nota dihapus sepenuhnya)
-
-// ========================================
 // TABLE: ARTIKELS
-// ========================================
 export const artikels = pgTable('artikel', {
   id: uuid('id').defaultRandom().primaryKey(),
-  authorId: uuid('author_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  
+  authorId: uuid('author_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   judul: text('judul').notNull(),
   konten: text('konten').notNull(),
   gambar: text('gambar'),
   kategori: text('kategori'),
-  
   published: boolean('published').default(false).notNull(),
   posting: timestamp('posting').defaultNow().notNull(),
-  
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
-// ========================================
 // TABLE: PORTFOLIOS
-// ========================================
 export const portfolios = pgTable('portfolio', {
   id: uuid('id').defaultRandom().primaryKey(),
-  proyekId: uuid('proyek_id')
-    .notNull()
-    .unique()
-    .references(() => projeks.id, { onDelete: 'cascade' }),
-  
+  proyekId: uuid('proyek_id').notNull().unique().references(() => projeks.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   client: text('client').notNull(),
   location: text('location').notNull(),
@@ -224,53 +156,32 @@ export const portfolios = pgTable('portfolio', {
   completedDate: timestamp('completed_date').notNull(),
   description: text('description').notNull(),
   imageUrl: text('image_url').array(),
-  
   published: boolean('published').default(false).notNull(),
-  
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
-// ========================================
 // TABLE: TESTIMONIS
-// ========================================
 export const testimonis = pgTable('testimoni', {
   id: uuid('id').defaultRandom().primaryKey(),
-  proyekId: uuid('proyek_id')
-    .notNull()
-    .unique()
-    .references(() => projeks.id, { onDelete: 'cascade' }),
-  
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  
+  proyekId: uuid('proyek_id').notNull().unique().references(() => projeks.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   komentar: text('komentar').notNull(),
   gambar: text('gambar'),
   rating: integer('rating').notNull(),
-  
   approved: boolean('approved').default(false).notNull(),
   approvedAt: timestamp('approved_at'),
-  approvedBy: uuid('approved_by')
-    .references(() => users.id, { onDelete: 'set null' }),
-  
+  approvedBy: uuid('approved_by').references(() => users.id, { onDelete: 'set null' }),
   posting: timestamp('posting').defaultNow().notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
-// ========================================
 // RELATIONS
-// ========================================
-
 export const usersRelations = relations(users, ({ many }) => ({
   projeksAsPelanggan: many(projeks, { relationName: 'pelanggan' }),
   projeksAsMandor: many(projeks, { relationName: 'mandor' }),
-  
-  // ⚠️ SIMPLIFIED: Hanya creator relation
   notasCreated: many(notaBelanjas, { relationName: 'creator' }),
-  // ⚠️ REMOVED: notasApproved
-  
   artikels: many(artikels),
   testimonis: many(testimonis),
   approvedTestimonis: many(testimonis, { relationName: 'approver' }),
@@ -303,7 +214,6 @@ export const milestonesRelations = relations(milestones, ({ one, many }) => ({
   bahanHarians: many(bahanHarians),
 }))
 
-// ✅ SIMPLIFIED: Nota Belanja Relations (without approver & photos)
 export const notaBelanjaRelations = relations(notaBelanjas, ({ one, many }) => ({
   projek: one(projeks, {
     fields: [notaBelanjas.proyekId],
@@ -318,9 +228,7 @@ export const notaBelanjaRelations = relations(notaBelanjas, ({ one, many }) => (
     references: [users.id],
     relationName: 'creator',
   }),
-  // ⚠️ REMOVED: approver relation
   items: many(bahanHarians),
-  // ⚠️ REMOVED: photos relation
 }))
 
 export const bahanHariansRelations = relations(bahanHarians, ({ one }) => ({
@@ -337,8 +245,6 @@ export const bahanHariansRelations = relations(bahanHarians, ({ one }) => ({
     references: [milestones.id],
   }),
 }))
-
-// ⚠️ REMOVED: fotoNotaRelations
 
 export const portfoliosRelations = relations(portfolios, ({ one }) => ({
   projek: one(projeks, {
@@ -370,10 +276,7 @@ export const artikelsRelations = relations(artikels, ({ one }) => ({
   }),
 }))
 
-// ========================================
 // TYPES
-// ========================================
-
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
 
@@ -388,8 +291,6 @@ export type NewNotaBelanja = typeof notaBelanjas.$inferInsert
 
 export type BahanHarian = typeof bahanHarians.$inferSelect
 export type NewBahanHarian = typeof bahanHarians.$inferInsert
-
-// ⚠️ REMOVED: FotoNota types
 
 export type Artikel = typeof artikels.$inferSelect
 export type NewArtikel = typeof artikels.$inferInsert

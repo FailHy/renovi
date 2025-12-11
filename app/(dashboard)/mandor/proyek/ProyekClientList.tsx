@@ -181,7 +181,7 @@ export function ProyekListClient({ projects }: ProyekListClientProps) {
                   setSearchQuery('')
                   setStatusFilter('all')
                 }}
-                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 transform hover:-translate-y-0.5"
+                className="px-6 py-2.5 bg-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 transform hover:-translate-y-0.5"
               >
                 Reset Filter
               </button>

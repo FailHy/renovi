@@ -33,10 +33,29 @@ export interface Project {
   progress: number
   mulai: string
   selesai?: string
-  pelanggan: Pelanggan
+  // pelanggan: Pelanggan
   budget?: number
   createdAt: string
   updatedAt: string
+  pelangganId: string
+  mandorId?: string
+  pelanggan: {
+    id: string
+    nama: string
+    telpon?: string
+    email?: string
+    alamat?: string
+  }
+  mandor?: {
+    id: string
+    nama: string
+    telpon?: string
+  }
+  // verifikasi
+    isVerifiedComplete?: boolean
+  verifiedBy?: string
+  verifiedAt?: string | Date
+  verificationNote?: string
 }
 
 export interface BahanHarian {

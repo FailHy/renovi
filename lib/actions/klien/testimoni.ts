@@ -19,28 +19,29 @@ export async function createTestimoni(data: {
   komentar: string
 }) {
   try {
+    console.log('=== CREATE TESTIMONI START ===')
+    console.log('Input data:', JSON.stringify(data, null, 2))
+    
     const session = await getServerSession(authOptions)
+    console.log('Session:', { userId: session?.user?.id, role: session?.user?.role })
     
     if (!session?.user?.id || session.user.id !== data.klienId) {
-      return {
-        success: false,
-        error: 'Unauthorized'
-      }
+      console.log('❌ Unauthorized')
+      return { success: false, error: 'Unauthorized' }
     }
 
     // Validate rating
     if (data.rating < 1 || data.rating > 5) {
-      return {
-        success: false,
-        error: 'Rating harus antara 1-5'
-      }
+      console.log('❌ Invalid rating:', data.rating)
+      return { success: false, error: 'Rating harus antara 1-5' }
     }
 
     // Verify project belongs to klien and is completed
+    console.log('Checking project...')
     const project = await db.query.projeks.findFirst({
       where: and(
         eq(projeks.id, data.proyekId),
-        eq(projeks.pelangganId, data.klienId) // FIX: pelangganId
+        eq(projeks.pelangganId, data.klienId) // ✅ pelangganId di projeks
       ),
       columns: {
         id: true,
@@ -49,14 +50,15 @@ export async function createTestimoni(data: {
       }
     })
 
+    console.log('Project found:', project)
+
     if (!project) {
-      return {
-        success: false,
-        error: 'Proyek tidak ditemukan'
-      }
+      console.log('❌ Project not found')
+      return { success: false, error: 'Proyek tidak ditemukan' }
     }
 
     if (project.status !== 'Selesai') {
+      console.log('❌ Project not completed. Status:', project.status)
       return {
         success: false,
         error: 'Testimoni hanya bisa diberikan untuk proyek yang sudah selesai'
@@ -64,35 +66,57 @@ export async function createTestimoni(data: {
     }
 
     // Check if testimoni already exists
+    console.log('Checking existing testimoni...')
     const existingTestimoni = await db.query.testimonis.findFirst({
       where: and(
         eq(testimonis.proyekId, data.proyekId),
-        eq(testimonis.userId, data.klienId) // FIX: pelangganId
+        eq(testimonis.userId, data.klienId) // ✅ FIX: userId (bukan pelangganId!)
       )
     })
 
+    console.log('Existing testimoni:', existingTestimoni ? 'Found' : 'Not found')
+
     if (existingTestimoni) {
+      console.log('❌ Testimoni already exists')
       return {
         success: false,
         error: 'Anda sudah memberikan testimoni untuk proyek ini'
       }
     }
 
-    // Create testimoni
+    // ✅ FIX: Create testimoni dengan field yang BENAR
+    console.log('Creating testimoni...')
+    const testimoniId = uuidv4()
+    
+    const testimoniData = {
+      id: testimoniId,
+      proyekId: data.proyekId,
+      userId: data.klienId,        // ✅ FIX: userId (sesuai schema!)
+      rating: data.rating,
+      komentar: data.komentar,
+      gambar: null,                // ✅ Add: gambar field
+      approved: false,             // ✅ Add: approved field
+      approvedAt: null,            // ✅ Add: approvedAt field
+      approvedBy: null,            // ✅ Add: approvedBy field
+      posting: new Date(),         // ✅ Add: posting field
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+    
+    console.log('Testimoni data to insert:', testimoniData)
+
     const [newTestimoni] = await db.insert(testimonis)
-      .values({
-        id: uuidv4(),
-        proyekId: data.proyekId,
-        pelangganId: data.klienId, // FIX: pelangganId
-        rating: data.rating,
-        komentar: data.komentar,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
+      .values(testimoniData)
       .returning()
 
+    console.log('✅ Testimoni inserted successfully:', newTestimoni.id)
+
+    // Revalidate paths
     revalidatePath(`/klien/proyek/${data.proyekId}`)
     revalidatePath('/klien/proyek')
+    revalidatePath('/admin/testimoni')
+
+    console.log('=== CREATE TESTIMONI END ===')
 
     return {
       success: true,
@@ -100,7 +124,9 @@ export async function createTestimoni(data: {
       message: 'Testimoni berhasil dikirim. Terima kasih atas feedback Anda!'
     }
   } catch (error) {
-    console.error('Error creating testimoni:', error)
+    console.error('❌❌❌ ERROR in createTestimoni:', error)
+    console.error('Error details:', error instanceof Error ? error.message : 'Unknown error')
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack')
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Gagal mengirim testimoni'
@@ -116,7 +142,7 @@ export async function getTestimoniByProyek(proyekId: string) {
     const testimoni = await db.query.testimonis.findFirst({
       where: eq(testimonis.proyekId, proyekId),
       with: {
-        user: { // FIX: pelanggan relation
+        user: {
           columns: {
             id: true,
             nama: true
@@ -169,7 +195,11 @@ export async function getTestimoniForMandor(mandorId: string) {
     }
 
     const allTestimoni = await db.query.testimonis.findMany({
-      where: sql`${projeks.mandorId} = ${mandorId}`,
+      where: sql`EXISTS (
+        SELECT 1 FROM ${projeks} 
+        WHERE ${projeks.id} = ${testimonis.proyekId} 
+        AND ${projeks.mandorId} = ${mandorId}
+      )`,
       with: {
         projek: {
           columns: {
@@ -177,7 +207,7 @@ export async function getTestimoniForMandor(mandorId: string) {
             nama: true
           }
         },
-        user: { // FIX: pelanggan relation
+        user: {
           columns: {
             id: true,
             nama: true

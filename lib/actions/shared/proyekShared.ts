@@ -1,4 +1,4 @@
-// lib/actions/shared/proyek.ts
+// FILE: lib/actions/shared/proyek.ts
 'use server'
 
 import { db } from '@/lib/db'
@@ -30,6 +30,13 @@ export interface ProyekData {
     telpon: string | null
   }
   hasTestimoni: boolean
+  testimoniData?: {
+    id: string
+    rating: number
+    komentar: string
+    approved: boolean
+    createdAt: Date
+  } | null
   lastUpdate: Date
   createdAt: Date
   updatedAt: Date
@@ -71,6 +78,21 @@ export async function getProyekById(id: string, userId: string, role: UserRole) 
       return { success: false, error: 'Invalid parameters', data: null }
     }
 
+    // ✅ UPDATE: Get testimoni data juga
+    const testimoniData = await db.query.testimonis.findFirst({
+      where: and(
+        eq(testimonis.proyekId, id),
+        eq(testimonis.userId, userId)
+      ),
+      columns: {
+        id: true,
+        rating: true,
+        komentar: true,
+        approved: true,
+        createdAt: true
+      }
+    })
+
     // Get project with relations
     const result = await db
       .select({
@@ -85,12 +107,8 @@ export async function getProyekById(id: string, userId: string, role: UserRole) 
           id: sql<string>`pelanggan_user.id`,
           nama: sql<string>`pelanggan_user.nama`,
           telpon: sql<string | null>`pelanggan_user.telpon`
-        },
-        hasTestimoni: sql<boolean>`EXISTS(
-          SELECT 1 FROM ${testimonis} 
-          WHERE ${testimonis.proyekId} = ${projeks.id}
-          AND ${testimonis.userId} = ${userId}
-        )`
+        }
+        // ❌ HAPUS: hasTestimoni dari SQL karena kita hitung manual
       })
       .from(projeks)
       .innerJoin(
@@ -123,6 +141,9 @@ export async function getProyekById(id: string, userId: string, role: UserRole) 
       finalProgress
     })
 
+    // ✅ FIX: hasTestimoni = testimoni ada DAN approved
+    const hasTestimoni = !!testimoniData?.id && testimoniData.approved === true
+
     // Format response
     const proyekData: ProyekData = {
       id: row.projek.id,
@@ -131,7 +152,7 @@ export async function getProyekById(id: string, userId: string, role: UserRole) 
       deskripsi: row.projek.deskripsi,
       alamat: row.projek.alamat,
       status: row.projek.status,
-      progress: finalProgress, // ✅ Use calculated progress
+      progress: finalProgress,
       tanggalMulai: row.projek.mulai,
       tanggalSelesai: row.projek.selesai,
       pelangganId: row.projek.pelangganId,
@@ -147,11 +168,19 @@ export async function getProyekById(id: string, userId: string, role: UserRole) 
         nama: row.pelanggan.nama,
         telpon: row.pelanggan.telpon
       },
-      hasTestimoni: row.hasTestimoni,
+      hasTestimoni, // ✅ Gunakan yang sudah dihitung dengan benar
+      testimoniData, // ✅ Include data testimoni lengkap
       lastUpdate: row.projek.lastUpdate,
       createdAt: row.projek.createdAt,
       updatedAt: row.projek.updatedAt
     }
+
+    console.log('Proyek data with testimoni:', {
+      hasTestimoni,
+      testimoniExists: !!testimoniData?.id,
+      testimoniApproved: testimoniData?.approved,
+      testimoniData: testimoniData
+    })
 
     return { success: true, data: proyekData }
   } catch (error) {
@@ -198,6 +227,18 @@ export async function getProyekByUser(userId: string, role: UserRole) {
       const calculatedProgress = await calculateProyekProgress(row.projek.id)
       const finalProgress = calculatedProgress > 0 ? calculatedProgress : (row.projek.progress || 0)
 
+      // ✅ UPDATE: Get testimoni status untuk setiap proyek
+      const testimoniData = await db.query.testimonis.findFirst({
+        where: and(
+          eq(testimonis.proyekId, row.projek.id),
+          eq(testimonis.userId, userId)
+        ),
+        columns: {
+          id: true,
+          approved: true
+        }
+      })
+
       return {
         id: row.projek.id,
         nama: row.projek.nama,
@@ -214,6 +255,7 @@ export async function getProyekByUser(userId: string, role: UserRole) {
           nama: row.mandor.nama,
           telpon: row.mandor.telpon
         } : null,
+        hasTestimoni: !!testimoniData?.id && testimoniData.approved === true, // ✅
         lastUpdate: row.projek.lastUpdate,
         createdAt: row.projek.createdAt
       }
@@ -319,6 +361,7 @@ export async function canAddTestimoniToProyek(
       data: {
         canSubmit,
         hasExistingTestimoni: !!existingTestimoni,
+        testimoniApproved: existingTestimoni?.approved || false,
         progress: proyek.progress,
         role
       }
