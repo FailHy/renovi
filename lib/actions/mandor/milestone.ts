@@ -80,7 +80,7 @@ async function syncProjectProgress(proyekId: string) {
     revalidatePath('/admin/proyek')
     revalidatePath('/klien/proyek')
     
-    console.log(`✅ Synced Project ${proyekId}: Progress ${newProgress}% (${newStatus})`)
+    console.log(`   Synced Project ${proyekId}: Progress ${newProgress}% (${newStatus})`)
 
   } catch (error) {
     console.error('❌ Failed to sync project progress:', error)

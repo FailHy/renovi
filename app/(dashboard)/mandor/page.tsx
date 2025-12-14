@@ -1,14 +1,11 @@
-// FILE: app/(dashboard)/mandor/proyek/page.tsx
-// ========================================
 // RESPONSIVE PROJECT LIST PAGE
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/Card'
-import { HeaderDashboard } from '@/components/dashboard/HeaderDashboard'
 import { getMandorProjects } from '@/lib/actions/mandor/dashboard'
 import { ProyekListClient } from './proyek/ProyekClientList'
-import { FolderKanban, Clock, CheckCircle, AlertCircle } from 'lucide-react'
+import { FolderKanban, Clock, CheckCircle, AlertCircle, CalendarDays } from 'lucide-react'
 
 export default async function ProyekListPage() {
   const session = await getServerSession(authOptions)
@@ -25,20 +22,22 @@ export default async function ProyekListPage() {
 
   if (!projectsResult.success) {
     return (
-      <div className="space-y-6">
-        <HeaderDashboard
-          title="Daftar Proyek"
-          description="Kelola semua proyek Anda"
-        />
-        <Card className="bg-white border-0 shadow-md">
+      <div className="max-w-7xl mx-auto p-4 space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Daftar Proyek</h1>
+            <p className="text-gray-500">Kelola semua proyek Anda</p>
+          </div>
+        </div>
+        <Card className="bg-white border border-gray-200 shadow-sm">
           <CardContent className="text-center py-16">
-            <div className="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-10 h-10 text-rose-600" />
+            <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-rose-500" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Gagal Memuat Data
             </h3>
-            <p className="text-slate-600">
+            <p className="text-gray-500">
               {projectsResult.error || 'Gagal memuat data proyek'}
             </p>
           </CardContent>
@@ -56,21 +55,21 @@ export default async function ProyekListPage() {
     'Dibatalkan': projects.filter(p => p.status === 'Dibatalkan'),
   }
 
-  // Stats configuration
+  // Stats configuration with updated colors
   const statsConfig = [
     {
       label: 'Total Proyek',
       value: projects.length,
       icon: FolderKanban,
-      iconBg: 'bg-blue-100',
+      iconBg: 'bg-blue-50',
       iconColor: 'text-blue-600',
-      valueColor: 'text-slate-900'
+      valueColor: 'text-gray-900'
     },
     {
       label: 'Dalam Progress',
       value: projectsByStatus['Dalam Progress'].length,
       icon: Clock,
-      iconBg: 'bg-amber-100',
+      iconBg: 'bg-amber-50',
       iconColor: 'text-amber-600',
       valueColor: 'text-amber-600'
     },
@@ -78,7 +77,7 @@ export default async function ProyekListPage() {
       label: 'Perencanaan',
       value: projectsByStatus['Perencanaan'].length,
       icon: AlertCircle,
-      iconBg: 'bg-indigo-100',
+      iconBg: 'bg-indigo-50',
       iconColor: 'text-indigo-600',
       valueColor: 'text-indigo-600'
     },
@@ -86,50 +85,37 @@ export default async function ProyekListPage() {
       label: 'Selesai',
       value: projectsByStatus['Selesai'].length,
       icon: CheckCircle,
-      iconBg: 'bg-emerald-100',
+      iconBg: 'bg-emerald-50',
       iconColor: 'text-emerald-600',
       valueColor: 'text-emerald-600'
     }
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-8 p-1">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
             Daftar Proyek
           </h1>
-          <p className="text-slate-600 mt-1">
-            Kelola {projects.length} proyek Anda
+          <p className="text-gray-500 mt-1">
+            Kelola {projects.length} proyek konstruksi Anda
           </p>
         </div>
         
-        {/* Date & Time Card */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-slate-600">Tanggal</p>
-                <p className="text-sm font-bold text-slate-900">
-                  {new Date().toLocaleDateString('id-ID', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </p>
-                <p className="text-xs text-slate-600 font-medium">
-                  {new Date().toLocaleTimeString('id-ID', { 
-                    hour: '2-digit', 
-                    minute: '2-digit'
-                  })}
-                </p>
-              </div>
-            </div>
+        {/* Date Badge */}
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm text-sm text-gray-600">
+          <CalendarDays className="w-4 h-4 text-gray-400" />
+          <span>
+            {new Date().toLocaleDateString('id-ID', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </span>
+        </div>
       </div>
 
       {/* Stats Bar - Modern Cards */}
@@ -137,18 +123,18 @@ export default async function ProyekListPage() {
         {statsConfig.map((stat, index) => {
           const Icon = stat.icon
           return (
-            <Card key={index} className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow duration-200">
-              <CardContent className="p-4">
+            <Card key={index} className="bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+              <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-3">
-                  <div className={`w-12 h-12 ${stat.iconBg} rounded-xl flex items-center justify-center`}>
-                    <Icon className={`w-6 h-6 ${stat.iconColor}`} />
+                  <div className={`w-10 h-10 ${stat.iconBg} rounded-lg flex items-center justify-center`}>
+                    <Icon className={`w-5 h-5 ${stat.iconColor}`} />
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-600 mb-1">
+                  <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
                     {stat.label}
                   </p>
-                  <p className={`text-3xl font-bold ${stat.valueColor}`}>
+                  <p className={`text-2xl font-bold ${stat.valueColor}`}>
                     {stat.value}
                   </p>
                 </div>
@@ -158,7 +144,7 @@ export default async function ProyekListPage() {
         })}
       </div>
 
-      {/* Project List */}
+      {/* Project List Component */}
       <ProyekListClient projects={projects} />
     </div>
   )

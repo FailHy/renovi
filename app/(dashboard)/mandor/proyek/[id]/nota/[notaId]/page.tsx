@@ -86,9 +86,9 @@ export default function NotaDetailPage({
             })).filter((milestone: any) => milestone.id) // Hapus milestone tanpa ID
             
             setMilestones(validMilestones)
-            console.log('✅ Valid milestones:', validMilestones)
+            console.log('   Valid milestones:', validMilestones)
           } else {
-            console.warn('⚠️ No milestones found or error:', milestonesResult.error)
+            console.warn('  No milestones found or error:', milestonesResult.error)
             setMilestones([])
           }
         } catch (milestoneError) {
@@ -406,7 +406,7 @@ export default function NotaDetailPage({
             {nota.fotoNotaUrl && (
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <div className="flex justify-between items-center mb-3">
-                  <p className="text-sm font-semibold text-gray-700">Foto Nota</p>
+                  <p className="text-sm font-semibold text-gray-700">Foto Nota </p>
                 </div>
                 <div className="relative max-w-2xl mx-auto">
                   <img 

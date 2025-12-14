@@ -11,10 +11,10 @@ export interface Pelanggan {
 export interface Milestone {
   id: string
   nama: string
-  deskripsi: string | null  // ✅ Allow null
+  deskripsi: string | null  //  Allow null
   tanggal: string
   status: 'Dibatalkan' | 'Belum Dimulai' | 'Dalam Progress' | 'Selesai'
-  gambar: string[] | null   // ✅ Allow null
+  gambar: string[] | null   //  Allow null
   mulai: Date | null
   selesai: Date | null
   proyekId: string

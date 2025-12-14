@@ -1,3 +1,4 @@
+// FILE: app/(dashboard)/mandor/proyek/[id]/DetailProyekKlienClient.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -43,9 +44,6 @@ export function DetailProyekClient({
 
   const [submitting, setSubmitting] = useState(false)
 
-  /**
-   * AUTO UPDATE PROGRESS — SAFE
-   */
   useEffect(() => {
     if (milestones.length > 0) {
       const completed = milestones.filter(m => m.status === 'Selesai').length
@@ -68,13 +66,13 @@ export function DetailProyekClient({
 
       if (!result.success) throw new Error(result.error)
 
-      // ✅ UPDATE STATE LOKAL
+      //  UPDATE STATE LOKAL
       setProject(prev => ({ ...prev, progress: newProgress }))
       
       setIsProgressModalOpen(false)
       toast.success('Progress berhasil diupdate')
       
-      // ✅ REFRESH DARI SERVER
+      //  REFRESH DARI SERVER
       router.refresh()
     } catch (error: any) {
       toast.error(error.message || 'Gagal mengupdate progress')
@@ -148,7 +146,7 @@ export function DetailProyekClient({
       toast.success(data.id ? 'Milestone berhasil diupdate' : 'Milestone berhasil ditambahkan')
       handleCloseMilestoneModal()
       
-      // ✅ REFRESH DARI SERVER UNTUK SINKRONISASI
+      //  REFRESH DARI SERVER UNTUK SINKRONISASI
       router.refresh()
       
       return {
@@ -183,14 +181,14 @@ export function DetailProyekClient({
 
       if (!result.success) throw new Error(result.error)
 
-      // ✅ UPDATE STATE LOKAL: Hapus milestone dari array
+      //  UPDATE STATE LOKAL: Hapus milestone dari array
       setMilestones(prev => prev.filter(m => m.id !== deletingMilestone.id))
       
       toast.success('Milestone berhasil dihapus')
       setIsDeleteModalOpen(false)
       setDeletingMilestone(null)
       
-      // ✅ REFRESH DARI SERVER
+      //  REFRESH DARI SERVER
       router.refresh()
     } catch (error: any) {
       toast.error(error.message || 'Gagal menghapus milestone')
@@ -207,7 +205,7 @@ export function DetailProyekClient({
 
       if (!result.success) throw new Error(result.error)
 
-      // ✅ UPDATE STATE LOKAL: Update status milestone
+      //  UPDATE STATE LOKAL: Update status milestone
       setMilestones(prev => prev.map(m => 
         m.id === milestoneId 
           ? { ...m, status: status, updatedAt: new Date()} 
@@ -216,7 +214,7 @@ export function DetailProyekClient({
 
       toast.success(`Status milestone berhasil diubah menjadi ${status}`)
       
-      // ✅ REFRESH DARI SERVER
+      //  REFRESH DARI SERVER
       router.refresh()
     } catch (error: any) {
       toast.error(error.message || 'Gagal mengupdate status milestone')
@@ -247,7 +245,7 @@ export function DetailProyekClient({
             onAddMilestone={() => handleOpenMilestoneModal()}
             onEditMilestone={handleOpenMilestoneModal}
             onDeleteMilestone={handleDeleteClick}
-            onUpdateStatus={handleUpdateMilestoneStatus} // ✅ Pass the status handler
+            onUpdateStatus={handleUpdateMilestoneStatus} //  Pass the status handler
           />
         )}
 

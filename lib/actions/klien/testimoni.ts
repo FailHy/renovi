@@ -41,7 +41,7 @@ export async function createTestimoni(data: {
     const project = await db.query.projeks.findFirst({
       where: and(
         eq(projeks.id, data.proyekId),
-        eq(projeks.pelangganId, data.klienId) // ✅ pelangganId di projeks
+        eq(projeks.pelangganId, data.klienId) //  pelangganId di projeks
       ),
       columns: {
         id: true,
@@ -70,7 +70,7 @@ export async function createTestimoni(data: {
     const existingTestimoni = await db.query.testimonis.findFirst({
       where: and(
         eq(testimonis.proyekId, data.proyekId),
-        eq(testimonis.userId, data.klienId) // ✅ FIX: userId (bukan pelangganId!)
+        eq(testimonis.userId, data.klienId) //  FIX: userId (bukan pelangganId!)
       )
     })
 
@@ -84,21 +84,21 @@ export async function createTestimoni(data: {
       }
     }
 
-    // ✅ FIX: Create testimoni dengan field yang BENAR
+    //  FIX: Create testimoni dengan field yang BENAR
     console.log('Creating testimoni...')
     const testimoniId = uuidv4()
     
     const testimoniData = {
       id: testimoniId,
       proyekId: data.proyekId,
-      userId: data.klienId,        // ✅ FIX: userId (sesuai schema!)
+      userId: data.klienId,        //  FIX: userId (sesuai schema!)
       rating: data.rating,
       komentar: data.komentar,
-      gambar: null,                // ✅ Add: gambar field
-      approved: false,             // ✅ Add: approved field
-      approvedAt: null,            // ✅ Add: approvedAt field
-      approvedBy: null,            // ✅ Add: approvedBy field
-      posting: new Date(),         // ✅ Add: posting field
+      gambar: null,                //  Add: gambar field
+      approved: false,             //  Add: approved field
+      approvedAt: null,            //  Add: approvedAt field
+      approvedBy: null,            //  Add: approvedBy field
+      posting: new Date(),         //  Add: posting field
       createdAt: new Date(),
       updatedAt: new Date()
     }
@@ -109,7 +109,7 @@ export async function createTestimoni(data: {
       .values(testimoniData)
       .returning()
 
-    console.log('✅ Testimoni inserted successfully:', newTestimoni.id)
+    console.log('   Testimoni inserted successfully:', newTestimoni.id)
 
     // Revalidate paths
     revalidatePath(`/klien/proyek/${data.proyekId}`)

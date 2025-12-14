@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
           console.log('🗑️ Gambar lama berhasil dihapus:', oldFilename)
         }
       } catch (error) {
-        console.error('⚠️ Error menghapus gambar lama:', error)
+        console.error('  Error menghapus gambar lama:', error)
         // Continue anyway - tidak perlu gagal jika hapus gagal
       }
     }
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     
     // Simpan file baru
     await writeFile(publicUploadsPath, buffer)
-    console.log('✅ Gambar baru berhasil disimpan:', filename)
+    console.log('   Gambar baru berhasil disimpan:', filename)
 
     // Return URL yang bisa diakses public
     const imageUrl = `/uploads/${filename}`

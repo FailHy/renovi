@@ -17,7 +17,7 @@ type User = {
   nama: string;
   username: string;
   email: string;
-  role: string; // ✅ Ubah dari enum ke string
+  role: string;
   telpon?: string | null;
   alamat?: string | null;
   createdAt: string;
@@ -35,6 +35,17 @@ export default function ManajemenPenggunaPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Form state
+  const [formData, setFormData] = useState({
+    nama: '',
+    username: '',
+    email: '',
+    password: '',
+    role: 'pelanggan',
+    telpon: '',
+    alamat: ''
+  })
+
   // Fetch data dari database
   const loadUsers = async () => {
     try {
@@ -43,10 +54,9 @@ export default function ManajemenPenggunaPage() {
       const result = await getUsers()
       
       if (result.success && result.data) {
-        // ✅ Langsung set data dari server tanpa conversion
         setUsers(result.data.map(user => ({
           ...user,
-          createdAt: user.createdAt.toISOString() // Convert Date to string jika perlu
+          createdAt: user.createdAt.toISOString()
         })))
       } else {
         throw new Error(result.error || 'Gagal memuat data pengguna')
@@ -75,33 +85,82 @@ export default function ManajemenPenggunaPage() {
   })
 
   const handleOpenModal = (user?: User) => {
-    setEditingUser(user || null)
+    if (user) {
+      // Mode edit - set data user ke form
+      setEditingUser(user)
+      setFormData({
+        nama: user.nama || '',
+        username: user.username || '',
+        email: user.email || '',
+        password: '', // Kosongkan password untuk edit
+        role: user.role || 'pelanggan',
+        telpon: user.telpon || '',
+        alamat: user.alamat || ''
+      })
+    } else {
+      // Mode create baru - reset form
+      setEditingUser(null)
+      setFormData({
+        nama: '',
+        username: '',
+        email: '',
+        password: '',
+        role: 'pelanggan',
+        telpon: '',
+        alamat: ''
+      })
+    }
     setIsModalOpen(true)
   }
 
   const handleCloseModal = () => {
     setIsModalOpen(false)
     setEditingUser(null)
+    // Reset form saat modal ditutup
+    setFormData({
+      nama: '',
+      username: '',
+      email: '',
+      password: '',
+      role: 'pelanggan',
+      telpon: '',
+      alamat: ''
+    })
   }
 
-  const handleFormSubmit = async (formData: FormData) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     setIsSubmitting(true)
     setError(null)
     
     try {
-      // Debug: Lihat data yang dikirim
-      console.log('FormData entries:')
-      for (let [key, value] of formData.entries()) {
-        console.log(key, value)
+      const formDataToSend = new FormData()
+      
+      // Tambahkan semua data ke FormData
+      formDataToSend.append('nama', formData.nama)
+      formDataToSend.append('username', formData.username)
+      formDataToSend.append('email', formData.email)
+      formDataToSend.append('role', formData.role)
+      formDataToSend.append('telpon', formData.telpon)
+      formDataToSend.append('alamat', formData.alamat)
+      
+      // Password hanya dikirim jika tidak kosong (untuk edit) atau wajib (untuk create)
+      if (formData.password) {
+        formDataToSend.append('password', formData.password)
+      } else if (!editingUser) {
+        // Untuk create baru, password wajib
+        throw new Error('Password harus diisi untuk pengguna baru')
       }
-
+      
+      let result
       if (editingUser) {
-        const result = await updateUser(editingUser.id, formData)
+        formDataToSend.append('id', editingUser.id)
+        result = await updateUser(editingUser.id, formDataToSend)
         if (!result.success) {
           throw new Error(result.error || 'Gagal mengupdate pengguna')
         }
       } else {
-        const result = await createUser(formData)
+        result = await createUser(formDataToSend)
         if (!result.success) {
           throw new Error(result.error || 'Gagal membuat pengguna')
         }
@@ -178,13 +237,21 @@ export default function ManajemenPenggunaPage() {
     }
   }
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
   return (
     <div className="space-y-6">
-      {/* bagian manajemen pengguna */}
+      {/* Header */}
       <HeaderManajemenPengguna 
         action={
           <Button 
-            onClick={handleOpenModal}
+            onClick={() => handleOpenModal()}
             className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 group flex items-center gap-2 px-6 py-3 rounded-xl font-semibold"
           >
             <Plus className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" />
@@ -298,7 +365,6 @@ export default function ManajemenPenggunaPage() {
                       <div className="flex items-center justify-end gap-1">
                         <Button
                           variant="ghost"
-                          
                           onClick={() => handleOpenModal(user)}
                           className="opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-blue-50 hover:text-blue-600 p-2"
                         >
@@ -306,7 +372,6 @@ export default function ManajemenPenggunaPage() {
                         </Button>
                         <Button
                           variant="ghost"
-                          
                           onClick={() => handleDelete(user)}
                           className="opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-50 hover:text-red-600 p-2"
                           disabled={user.role === 'admin' && users.filter(u => u.role === 'admin').length === 1}
@@ -358,81 +423,91 @@ export default function ManajemenPenggunaPage() {
         title={editingUser ? 'Edit Pengguna' : 'Tambah Pengguna Baru'}
         size="lg"
       >
-        <form action={handleFormSubmit} className="space-y-5">
-          <input type="hidden" name="id" value={editingUser?.id || ''} />
-          
-          <Input
-            label="Nama Lengkap"
-            name="nama"
-            placeholder="Masukkan nama lengkap pengguna"
-            defaultValue={editingUser?.nama || ''}
-            required
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit={handleFormSubmit} className="space-y-5">
+          <div className="space-y-4">
             <Input
-              label="Username"
-              name="username"
-              placeholder="username unik"
-              defaultValue={editingUser?.username || ''}
+              label="Nama Lengkap"
+              name="nama"
+              placeholder="Masukkan nama lengkap pengguna"
+              value={formData.nama}
+              onChange={handleInputChange}
               required
             />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Username"
+                name="username"
+                placeholder="username unik"
+                value={formData.username}
+                onChange={handleInputChange}
+                required
+              />
+
+              <Input
+                label="Email"
+                type="email"
+                name="email"
+                placeholder="email@example.com"
+                value={formData.email}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
 
             <Input
-              label="Email"
-              type="email"
-              name="email"
-              placeholder="email@example.com"
-              defaultValue={editingUser?.email || ''}
-              required
+              label={
+                editingUser 
+                  ? 'Password Baru (kosongkan jika tidak ingin mengubah password)' 
+                  : 'Password'
+              }
+              type="password"
+              name="password"
+              placeholder={editingUser ? "Isi untuk mengganti password" : "Minimal 6 karakter"}
+              value={formData.password}
+              onChange={handleInputChange}
+              required={!editingUser}
+              minLength={6}
             />
-          </div>
 
-          <Input
-            label={editingUser ? 'Password Baru (kosongkan jika tidak diubah)' : 'Password'}
-            type="password"
-            name="password"
-            placeholder="Minimal 6 karakter"
-            required={!editingUser}
-            minLength={6}
-          />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Role Pengguna
+              </label>
+              <select
+                name="role"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white text-gray-900"
+                value={formData.role}
+                onChange={handleInputChange}
+                required
+              >
+                <option value="pelanggan">Pelanggan</option>
+                <option value="mandor">Mandor</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Role Pengguna
-            </label>
-            <select
-              name="role"
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white text-gray-900"
-              defaultValue={editingUser?.role || ''}
-              required
-            >
-              <option disabled className="text-gray-400">
-                Pilih Role
-              </option>
-              <option value="pelanggan">Pelanggan</option>
-              <option value="mandor">Mandor</option>
-            </select>
-          </div>
-
-          <Input
-            label="Nomor Telepon"
-            name="telpon"
-            placeholder="08xxxxxxxxxx"
-            defaultValue={editingUser?.telpon || ''}
-          />
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Alamat Lengkap
-            </label>
-            <textarea
-              name="alamat"
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
-              rows={3}
-              placeholder="Masukkan alamat lengkap pengguna"
-              defaultValue={editingUser?.alamat || ''}
+            <Input
+              label="Nomor Telepon"
+              name="telpon"
+              placeholder="08xxxxxxxxxx"
+              value={formData.telpon}
+              onChange={handleInputChange}
             />
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Alamat Lengkap
+              </label>
+              <textarea
+                name="alamat"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                rows={3}
+                placeholder="Masukkan alamat lengkap pengguna"
+                value={formData.alamat}
+                onChange={handleInputChange}
+              />
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
@@ -440,22 +515,24 @@ export default function ManajemenPenggunaPage() {
               type="button" 
               variant="outline" 
               onClick={handleCloseModal}
-              className="border-gray-300 hover:bg-gray-50"
+              className="border-gray-300 hover:bg-gray-50 px-5 py-2.5"
             >
               Batal
             </Button>
             <Button 
               type="submit" 
               disabled={isSubmitting}
-              className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 text-white shadow-lg disabled:opacity-50"
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 py-2.5 shadow-lg disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   {editingUser ? 'Mengupdate...' : 'Menyimpan...'}
                 </>
+              ) : editingUser ? (
+                'Update Pengguna'
               ) : (
-                editingUser ? 'Update Pengguna' : 'Simpan Pengguna'
+                'Buat Pengguna'
               )}
             </Button>
           </div>

@@ -13,7 +13,7 @@ import { eq, desc, and } from 'drizzle-orm'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
-// ✅ Type untuk testimoni dengan relasi
+//  Type untuk testimoni dengan relasi
 export interface TestimoniWithRelations {
   id: string
   comment: string
@@ -53,7 +53,7 @@ export async function getTestimonis() {
       return { success: false, error: 'Unauthorized' }
     }
 
-    // ✅ FIX: Gunakan query terpisah untuk menghindari JOIN conflict
+    //  FIX: Gunakan query terpisah untuk menghindari JOIN conflict
     // 1. Ambil semua testimoni
     const testimoniList = await db.query.testimonis.findMany({
       orderBy: (testimonis, { desc }) => [desc(testimonis.createdAt)],
@@ -85,9 +85,9 @@ export async function getTestimonis() {
       }
     })
 
-    console.log(`✅ Found ${testimoniList.length} testimonials in database`)
+    console.log(`   Found ${testimoniList.length} testimonials in database`)
 
-    // ✅ Transform data ke format yang diharapkan UI
+    //  Transform data ke format yang diharapkan UI
     const formattedTestimonials: TestimoniWithRelations[] = testimoniList.map(item => ({
       id: item.id,
       comment: item.komentar,
@@ -139,7 +139,7 @@ export async function getPendingTestimonis() {
       return { success: false, error: 'Unauthorized' }
     }
 
-    // ✅ FIX: Gunakan Drizzle query dengan relations
+    //  FIX: Gunakan Drizzle query dengan relations
     const pendingTestimonials = await db.query.testimonis.findMany({
       where: (testimonis, { eq }) => eq(testimonis.approved, false),
       orderBy: (testimonis, { desc }) => [desc(testimonis.createdAt)],
@@ -192,7 +192,7 @@ export async function getTestimoniById(id: string) {
 
     console.log(`🔍 Fetching testimoni by ID: ${id}`)
 
-    // ✅ FIX: Gunakan Drizzle query dengan relations
+    //  FIX: Gunakan Drizzle query dengan relations
     const testimonial = await db.query.testimonis.findFirst({
       where: (testimonis, { eq }) => eq(testimonis.id, id),
       with: {
@@ -293,7 +293,7 @@ export async function approveTestimoni(id: string) {
       return { success: false, error: 'Unauthorized' }
     }
 
-    console.log(`✅ Admin ${session.user.id} approving testimoni ${id}`)
+    console.log(`   Admin ${session.user.id} approving testimoni ${id}`)
 
     // Cek apakah testimoni sudah ada
     const existingTestimoni = await db.query.testimonis.findFirst({
@@ -306,7 +306,7 @@ export async function approveTestimoni(id: string) {
     }
 
     if (existingTestimoni.approved) {
-      console.log(`⚠️ Testimoni ${id} already approved`)
+      console.log(`  Testimoni ${id} already approved`)
       return { success: false, error: 'Testimoni sudah disetujui sebelumnya' }
     }
 
@@ -322,7 +322,7 @@ export async function approveTestimoni(id: string) {
       .where(eq(testimonis.id, id))
       .returning()
 
-    console.log(`✅ Testimoni ${id} approved successfully`)
+    console.log(`   Testimoni ${id} approved successfully`)
 
     // Revalidate paths
     revalidatePath('/admin/testimoni')

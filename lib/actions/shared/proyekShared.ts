@@ -132,7 +132,7 @@ export async function getProyekById(id: string, userId: string, role: UserRole) 
 
     // Log untuk debugging jika ada perbedaan
     if (displayProgress !== row.projek.progress) {
-      console.warn(`⚠️ Progress Mismatch for Project ${id}: DB=${row.projek.progress}%, Real-time=${displayProgress}%`)
+      console.warn(`  Progress Mismatch for Project ${id}: DB=${row.projek.progress}%, Real-time=${displayProgress}%`)
       // Self-healing: Update DB secara diam-diam (fire and forget)
       // await db.update(projeks).set({ progress: displayProgress }).where(eq(projeks.id, id))
     }
@@ -145,7 +145,7 @@ export async function getProyekById(id: string, userId: string, role: UserRole) 
       deskripsi: row.projek.deskripsi,
       alamat: row.projek.alamat,
       status: row.projek.status,
-      progress: displayProgress, // ✅ Use calculated progress
+      progress: displayProgress, //  Use calculated progress
       tanggalMulai: row.projek.mulai,
       tanggalSelesai: row.projek.selesai,
       pelangganId: row.projek.pelangganId,
@@ -209,7 +209,7 @@ export async function getProyekByUser(userId: string, role: UserRole) {
 
     // Calculate progress for each project
     const proyekList = await Promise.all(results.map(async (row) => {
-      // ✅ FORCE SYNC ON LIST VIEW TOO
+      //  FORCE SYNC ON LIST VIEW TOO
       const realTimeProgress = await calculateRealTimeProgress(row.projek.id)
 
       return {
@@ -219,7 +219,7 @@ export async function getProyekByUser(userId: string, role: UserRole) {
         deskripsi: row.projek.deskripsi,
         alamat: row.projek.alamat,
         status: row.projek.status,
-        progress: realTimeProgress, // ✅ Use calculated progress
+        progress: realTimeProgress, //  Use calculated progress
         tanggalMulai: row.projek.mulai,
         tanggalSelesai: row.projek.selesai,
         mandorId: row.projek.mandorId,

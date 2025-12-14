@@ -67,7 +67,7 @@ export function MilestoneTab({
   const statusOptions = [
     { value: 'Belum Dimulai', label: 'Belum Dimulai', icon: '⏳', color: 'slate' },
     { value: 'Dalam Progress', label: 'Dalam Progress', icon: '🚧', color: 'amber' },
-    { value: 'Selesai', label: 'Selesai', icon: '✅', color: 'emerald' },
+    { value: 'Selesai', label: 'Selesai', icon: '  ', color: 'emerald' },
     { value: 'Dibatalkan', label: 'Dibatalkan', icon: '❌', color: 'rose' }
   ]
 

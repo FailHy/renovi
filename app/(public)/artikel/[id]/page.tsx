@@ -84,7 +84,7 @@ export default async function ArtikelDetailPage({ params }: PageProps) {
       notFound()
     }
 
-    console.log('✅ Artikel found:', artikel.judul)
+    console.log('   Artikel found:', artikel.judul)
 
     const relatedArticles = await getRelatedArticles(id, artikel.kategori)
 

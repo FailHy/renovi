@@ -10,7 +10,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
 /**
- * ✅ CENTRALIZED PROGRESS CALCULATION - Admin Version
+ *  CENTRALIZED PROGRESS CALCULATION - Admin Version
  */
 async function updateProjectProgress(proyekId: string) {
   console.log('🚀 [ADMIN UPDATE_PROGRESS] Starting for project:', proyekId)
@@ -27,7 +27,7 @@ async function updateProjectProgress(proyekId: string) {
     )
 
     if (projectMilestones.length === 0) {
-      console.log('⚠️ [ADMIN] No milestones, setting progress to 0')
+      console.log('  [ADMIN] No milestones, setting progress to 0')
       await db.update(projeks)
         .set({
           progress: 0,
@@ -86,7 +86,7 @@ async function updateProjectProgress(proyekId: string) {
 
     if (newStatus === 'Selesai') {
       updateData.selesai = new Date()
-      console.log('✅ [ADMIN] Setting completion date')
+      console.log('   [ADMIN] Setting completion date')
     }
 
     console.log('💾 [ADMIN] Updating database with:', updateData)
@@ -97,7 +97,7 @@ async function updateProjectProgress(proyekId: string) {
       .returning()
 
     console.log('✨ [ADMIN] Database updated successfully:', updated[0])
-    console.log('✅ [ADMIN] COMPLETE - Progress:', progress, '% | Status:', newStatus)
+    console.log('   [ADMIN] COMPLETE - Progress:', progress, '% | Status:', newStatus)
   } catch (error) {
     console.error('❌ [ADMIN UPDATE_PROGRESS] ERROR:', error)
     console.error('❌ [ADMIN] Stack:', error instanceof Error ? error.stack : 'No stack')
@@ -114,10 +114,10 @@ export async function createMilestone(data: NewMilestone) {
 
     const [milestone] = await db.insert(milestones).values(data).returning()
 
-    // ✅ Update project progress after creation
+    //  Update project progress after creation
     await updateProjectProgress(data.proyekId)
 
-    // ✅ Fixed revalidatePath syntax
+    //  Fixed revalidatePath syntax
     revalidatePath('/admin/proyek')
     revalidatePath(`/admin/proyek/${data.proyekId}`)
 
@@ -141,7 +141,7 @@ export async function updateMilestone(id: string, data: Partial<NewMilestone>) {
       .where(eq(milestones.id, id))
       .returning()
 
-    // ✅ Update project progress after update
+    //  Update project progress after update
     if (milestone) {
       await updateProjectProgress(milestone.proyekId)
     }
@@ -203,7 +203,7 @@ export async function updateMilestoneStatus(
       .where(eq(milestones.id, id))
       .returning()
 
-    // ✅ CRITICAL: Update project progress after status change
+    //  CRITICAL: Update project progress after status change
     if (updated) {
       await updateProjectProgress(updated.proyekId)
     }
@@ -234,7 +234,7 @@ export async function deleteMilestone(id: string) {
     if (milestone) {
       await db.delete(milestones).where(eq(milestones.id, id))
       
-      // ✅ Update project progress after deletion
+      //  Update project progress after deletion
       await updateProjectProgress(milestone.proyekId)
       
       revalidatePath('/admin/proyek')
@@ -249,7 +249,7 @@ export async function deleteMilestone(id: string) {
 }
 
 /**
- * ✅ Force recalculate progress for a project
+ *  Force recalculate progress for a project
  * Useful for fixing inconsistent data
  */
 export async function recalculateProjectProgress(proyekId: string) {

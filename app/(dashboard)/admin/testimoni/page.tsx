@@ -52,7 +52,7 @@ export default function ManajemenTestimoniPage() {
   const [actionType, setActionType] = useState<'approve' | 'reject'>('approve')
   const [actionTestimoni, setActionTestimoni] = useState<TestimoniData | null>(null)
 
-  // ✅ Fetch data real dari database
+  //  Fetch data real dari database
   useEffect(() => {
     fetchTestimonis()
   }, [])
@@ -67,7 +67,7 @@ export default function ManajemenTestimoniPage() {
       console.log('📊 API Response:', result)
       
       if (result.success && result.data) {
-        // ✅ UPDATE: Transform data dari database ke format yang sesuai
+        //  UPDATE: Transform data dari database ke format yang sesuai
         const formattedTestimonis: TestimoniData[] = result.data.map((item: any) => ({
           id: item.id,
           komentar: item.comment || item.komentar || '',
@@ -97,7 +97,7 @@ export default function ManajemenTestimoniPage() {
           } : null
         }))
         
-        console.log(`✅ Loaded ${formattedTestimonis.length} testimonials`)
+        console.log(`   Loaded ${formattedTestimonis.length} testimonials`)
         setTestimonis(formattedTestimonis)
         toast.success(`Data testimoni berhasil dimuat (${formattedTestimonis.length} data)`)
       } else {
@@ -150,7 +150,7 @@ export default function ManajemenTestimoniPage() {
       let result
       
       if (actionType === 'approve') {
-        // ✅ Approve testimoni dengan data real
+        //  Approve testimoni dengan data real
         result = await approveTestimoni(actionTestimoni.id)
         
         if (result.success) {
@@ -176,7 +176,7 @@ export default function ManajemenTestimoniPage() {
           toast.error(result.error || 'Gagal menyetujui testimoni')
         }
       } else {
-        // ✅ Reject (delete) testimoni dengan data real
+        //  Reject (delete) testimoni dengan data real
         result = await rejectTestimoni(actionTestimoni.id)
         
         if (result.success) {

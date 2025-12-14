@@ -122,7 +122,7 @@ export async function getNotaByProyekId(
 /**
  * Get nota by ID with detailed information
  */
-export async function getNotaById(
+export async function getNotaByIdShared(
   notaId: string, 
   userId: string, 
   role: UserRole

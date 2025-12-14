@@ -1,6 +1,6 @@
   @import "tailwindcss";
 
-  /* ✅ Define theme colors */
+  /*  Define theme colors */
   @theme {
     --color-primary: #007FFF;
     --color-secondary: #8F00FF;
@@ -75,7 +75,7 @@
       @apply bg-surface rounded-xl p-6 shadow-md;
     }
 
-    /* ✅ PERBAIKAN: Jangan reference .card dengan @apply, tulis langsung */
+    /*  PERBAIKAN: Jangan reference .card dengan @apply, tulis langsung */
     .card-hover {
       @apply bg-surface rounded-xl p-6 shadow-md transition-all duration-200 hover:shadow-lg hover:-translate-y-1;
     }
@@ -87,7 +87,7 @@
   }
 
 
-    /* ✅ PERBAIKAN: Tulis lengkap tanpa reference .input */
+    /*  PERBAIKAN: Tulis lengkap tanpa reference .input */
     .textarea {
       @apply w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary min-h-[100px] resize-y;
     }
@@ -124,7 +124,7 @@
       @apply flex items-center gap-3 px-4 py-3 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-primary dark:hover:text-primary rounded-lg transition-colors;
     }
 
-    /* ✅ PERBAIKAN: Tulis lengkap tanpa reference .sidebar-link */
+    /*  PERBAIKAN: Tulis lengkap tanpa reference .sidebar-link */
     .sidebar-link-active {
       @apply flex items-center gap-3 px-4 py-3 rounded-lg transition-colors bg-primary/10 text-primary font-medium;
     }

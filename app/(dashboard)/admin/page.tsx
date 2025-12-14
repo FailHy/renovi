@@ -98,37 +98,37 @@ export default async function AdminBerandaPage() {
       title: 'Total Pengguna', 
       value: stats.totalUsers, 
       icon: Users, 
-      color: 'text-blue-600' 
+      color: 'text-blue-600 w-12 h-12 opacity-30' 
     },
     { 
       title: 'Total Proyek', 
       value: stats.totalProjects, 
       icon: Briefcase, 
-      color: 'text-purple-600' 
+      color: 'text-purple-600 w-12 h-12 opacity-30' 
     },
     { 
       title: 'Proyek Selesai', 
       value: stats.completedProjects, 
       icon: CheckCircle2, 
-      color: 'text-green-600' 
+      color: 'text-green-600 w-12 h-12 opacity-30' 
     },
     { 
       title: 'Proyek Berlangsung', 
       value: stats.inProgressProjects, 
       icon: Clock, 
-      color: 'text-yellow-600' 
+      color: 'text-yellow-600 w-12 h-12 opacity-30' 
     },
     { 
       title: 'Proyek Dibatalkan', 
       value: stats.cancelledProjects, 
       icon: XCircle, 
-      color: 'text-red-600' 
+      color: 'text-red-600 w-12 h-12 opacity-30' 
     },
     { 
       title: 'Testimoni Pending', 
       value: stats.pendingTestimonials, 
       icon: MessageSquareWarning, 
-      color: 'text-orange-600', 
+      color: 'text-orange-600 w-12 h-12 opacity-30', 
       href: '/admin/testimoni' 
     },
   ];
@@ -165,12 +165,12 @@ export default async function AdminBerandaPage() {
   <CardHeader className="pb-4 border-b border-gray-100">
     <div className="flex items-center justify-between">
       <CardTitle className="text-xl font-bold flex items-center gap-2">
-        <div className="p-2 bg-gradient-to-br from-primary to-secondary rounded-lg">
+        <div className="p-2 bg-blue-500 rounded-lg">
           <TrendingUp className="w-5 h-5 text-white" />
         </div>
         Ringkasan Status Proyek
       </CardTitle>
-      <Badge variant="info" className="bg-blue-500/10 text-blue-600 border-0">
+      <Badge variant="info" className="bg-blue-500/10 text-blue-600 w-12 h-12 opacity-30 border-0">
         Live Data
       </Badge>
     </div>

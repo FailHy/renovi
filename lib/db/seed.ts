@@ -108,7 +108,7 @@ async function seed() {
       alamat: 'Komplek Ruko Senapelan Blok D No. 12, Pekanbaru',
     }).returning()
 
-    console.log('✅ Users seeded!')
+    console.log('   Users seeded!')
 
     // ========================================
     // 2. SEED PROJEKS
@@ -192,7 +192,7 @@ async function seed() {
       gambar: ['/images/projects/taman-1.jpg', '/images/projects/taman-2.jpg'],
     }).returning()
 
-    console.log('✅ Projects seeded!')
+    console.log('   Projects seeded!')
 
     // ========================================
     // 3. SEED MILESTONES
@@ -353,7 +353,7 @@ async function seed() {
       },
     ])
 
-    console.log('✅ Milestones seeded!')
+    console.log('   Milestones seeded!')
 
     // ========================================
     // 4. SEED BAHAN HARIANS
@@ -478,7 +478,7 @@ async function seed() {
       },
     ])
 
-    console.log('✅ Materials seeded!')
+    console.log('   Materials seeded!')
 
     // ========================================
     // 5. SEED ARTIKELS
@@ -585,7 +585,7 @@ Dengan perencanaan matang, renovasi dapur Anda akan berjalan lancar dan hasilnya
       },
     ])
 
-    console.log('✅ Articles seeded!')
+    console.log('   Articles seeded!')
 
     // ========================================
     // 6. SEED PORTFOLIOS
@@ -628,7 +628,7 @@ Dengan perencanaan matang, renovasi dapur Anda akan berjalan lancar dan hasilnya
       },
     ])
 
-    console.log('✅ Portfolios seeded!')
+    console.log('   Portfolios seeded!')
 
     // ========================================
     // 7. SEED TESTIMONIS
@@ -660,7 +660,7 @@ Dengan perencanaan matang, renovasi dapur Anda akan berjalan lancar dan hasilnya
       },
     ])
 
-    console.log('✅ Testimonials seeded!')
+    console.log('   Testimonials seeded!')
 
     // ========================================
     // SUMMARY

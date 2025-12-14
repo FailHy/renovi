@@ -151,7 +151,7 @@ export async function deleteArtikel(id: string) {
           }
         }
       } catch (error) {
-        console.error('⚠️ Error menghapus gambar:', error)
+        console.error('  Error menghapus gambar:', error)
         // Continue anyway
       }
     }

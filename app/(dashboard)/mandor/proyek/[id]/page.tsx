@@ -10,7 +10,7 @@ import { DetailProyekClient } from './DetailProyekClient'
 export default async function DetailProyekMandorPage({
   params
 }: {
-  params: Promise<{ id: string }> // ✅ params adalah Promise
+  params: Promise<{ id: string }> //  params adalah Promise
 }) {
   const session = await getServerSession(authOptions)
 
@@ -23,14 +23,14 @@ export default async function DetailProyekMandorPage({
     redirect('/unauthorized')
   }
 
-  // ✅ UNWRAP params dengan await
+  //  UNWRAP params dengan await
   const { id } = await params
   const mandorId = session.user.id
 
-  // Fetch data using server actions - ✅ tambahkan mandorId
+  // Fetch data using server actions -  tambahkan mandorId
   const [projectResult, milestonesResult] = await Promise.all([
-    getProjectById(id, mandorId), // ✅ kirim mandorId
-    getMilestonesByProjectId(id, mandorId) // ✅ kirim mandorId
+    getProjectById(id, mandorId), //  kirim mandorId
+    getMilestonesByProjectId(id, mandorId) //  kirim mandorId
   ])
 
   // Handle unauthorized or not found
@@ -58,8 +58,8 @@ export default async function DetailProyekMandorPage({
   // Pass data to client component
   return (
     <DetailProyekClient
-      project={projectResult.data} // ✅ fixed: projects -> project
-      initialMilestones={milestonesResult.data || []} // ✅ fixed: initialMilestone -> initialMilestones
+      project={projectResult.data} //  fixed: projects -> project
+      initialMilestones={milestonesResult.data || []} //  fixed: initialMilestone -> initialMilestones
       mandor={{
         id: session.user.id,
         nama: session.user.name || 'Mandor'
