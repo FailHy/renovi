@@ -1,5 +1,5 @@
 // ========================================
-// FILE: app/api/projects/[id]/milestones/[milestoneId]/route.ts
+// FILE: app/api/projects/[id]/milestones/[Milestonesid]/route.ts
 // ========================================
 import { NextRequest, NextResponse } from "next/server";
 import {
@@ -9,21 +9,28 @@ import {
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
+// 1. Definisikan tipe Params agar sesuai dengan NAMA FOLDER [Milestonesid]
+//    Perhatikan huruf besar 'M' pada 'Milestonesid' dan tipe Promise
+type Params = Promise<{ id: string; Milestonesid: string }>;
+
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; milestoneId: string } }
+  { params }: { params: Params } // Gunakan tipe Params yang benar
 ) {
   try {
-    // Check authentication
     const session = await getServerSession(authOptions);
 
     if (!session?.user || session.user.role !== "mandor") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // 2. Await params terlebih dahulu untuk mengambil Milestonesid
+    const { Milestonesid } = await params;
+
     const body = await request.json();
 
-    const result = await updateMilestone(params.milestoneId, {
+    // 3. Gunakan variabel Milestonesid (sesuai nama folder)
+    const result = await updateMilestone(Milestonesid, {
       nama: body.nama,
       deskripsi: body.deskripsi,
       tanggal: body.tanggal,
@@ -47,17 +54,20 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; milestoneId: string } }
+  { params }: { params: Params } // Gunakan tipe Params yang benar
 ) {
   try {
-    // Check authentication
     const session = await getServerSession(authOptions);
 
     if (!session?.user || session.user.role !== "mandor") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const result = await deleteMilestone(params.milestoneId);
+    // 2. Await params terlebih dahulu
+    const { Milestonesid } = await params;
+
+    // 3. Gunakan variabel Milestonesid
+    const result = await deleteMilestone(Milestonesid);
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 400 });
