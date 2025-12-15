@@ -1,0 +1,43 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  quality-check:
+    name: Quality Check (Lint, Type, Build)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Check Types (TypeScript)
+        # Pastikan tidak ada error TS sebelum deploy
+        run: npx tsc --noEmit
+
+      - name: Linting (ESLint)
+        # Pastikan gaya kode konsisten dan tidak ada error syntax
+        run: npm run lint
+
+      - name: Build Check
+        # Coba build project untuk memastikan tidak ada error saat build production
+        run: npm run build
+        env:
+          # Skip validasi ENV saat build check agar tidak perlu masukin secret asli di GitHub Actions
+          SKIP_ENV_VALIDATION: true 
+          # Atau jika NextAuth butuh secret dummy agar build jalan:
+          NEXTAUTH_SECRET: "dummy_secret_for_build"
+          NEXTAUTH_URL: "http://localhost:3000"

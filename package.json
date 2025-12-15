@@ -6,13 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint .",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx --require dotenv/config lib/db/seed.ts",
     "db:seed-porto": "tsx --require dotenv/config lib/db/seed-porto.ts",
-    "drizzle": "drizzle-kit"
+    "drizzle": "drizzle-kit",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -54,8 +56,19 @@
     "drizzle-kit": "^0.31.6",
     "eslint": "^9",
     "eslint-config-next": "^16.0.8",
+    "husky": "^8.0.0",
+    "lint-staged": "^16.2.7",
     "tailwindcss": "^4",
     "tsx": "^4.20.6",
     "typescript": "^5"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,scss,md}": [
+      "prettier --write"
+    ]
   }
 }
