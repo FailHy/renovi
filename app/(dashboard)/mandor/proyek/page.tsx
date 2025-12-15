@@ -80,7 +80,20 @@ export default async function ProyekListPage() {
     )
   }
 
-  const projects = projectsResult.data!
+  // FIX: Normalisasi data untuk Client Component
+  // Mengubah Date ke String dan menangani null values
+  const rawProjects = projectsResult.data!
+  const projects = rawProjects.map(project => ({
+    ...project,
+    mulai: project.mulai.toISOString(),
+    lastUpdate: project.lastUpdate.toISOString(),
+    selesai: project.selesai ? project.selesai.toISOString() : undefined,
+    pelanggan: {
+      ...project.pelanggan,
+      // Fallback ke string kosong jika telpon null
+      telpon: project.pelanggan.telpon || ''
+    }
+  }))
 
   const projectsByStatus = {
     'Dalam Progress': projects.filter(p => p.status === 'Dalam Progress'),
@@ -164,6 +177,7 @@ export default async function ProyekListPage() {
           </div>
         </div>
       </div>
+      
       {/* Project List */}
       <ProyekListClient projects={projects} />
     </div>

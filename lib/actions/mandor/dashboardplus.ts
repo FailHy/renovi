@@ -303,8 +303,8 @@ export async function getMonthlyActivitySummary() {
         .from(bahanHarians)
         .where(and(
           sql`${bahanHarians.proyekId} IN ${projectIds}`,
-          gte(bahanHarians.tanggal, monthStart),
-          lte(bahanHarians.tanggal, monthEnd)
+          gte(bahanHarians.createdAt, monthStart),
+          lte(bahanHarians.createdAt, monthEnd)
         ))
     ])
 

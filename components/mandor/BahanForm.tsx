@@ -786,7 +786,11 @@ export function BahanFormSection({
                           <Upload className="w-4 h-4 text-gray-500" />
                           <span className="text-sm text-gray-600">Upload Gambar</span>
                           <input
-                            ref={(el) => (editFileInputRefs.current[bahan.id] = el)}
+                            ref={(el: HTMLInputElement | null) => {
+                              if (el !== null) {
+                                editFileInputRefs.current[bahan.id] = el;
+                              }
+                            }}
                             type="file"
                             accept="image/*"
                             multiple

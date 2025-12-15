@@ -4,13 +4,13 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getProjectById } from '@/lib/actions/mandor/proyek'
-import { getMilestonesByProjectId } from '@/lib/actions/mandor/milestone'
+import { getMilestonesByProjectId } from '@/lib/actions/mandor/milestone' // Pastikan nama fungsi import benar
 import { DetailProyekClient } from './DetailProyekClient'
 
 export default async function DetailProyekMandorPage({
   params
 }: {
-  params: Promise<{ id: string }> //  params adalah Promise
+  params: Promise<{ id: string }> 
 }) {
   const session = await getServerSession(authOptions)
 
@@ -23,43 +23,45 @@ export default async function DetailProyekMandorPage({
     redirect('/unauthorized')
   }
 
-  //  UNWRAP params dengan await
+  // 1. UNWRAP params dengan await
   const { id } = await params
-  const mandorId = session.user.id
-
-  // Fetch data using server actions -  tambahkan mandorId
+  
+  // 2. Fetch data HANYA menggunakan 'id' (Project ID)
+  // mandorId tidak perlu dikirim karena sudah diambil otomatis di dalam server action via session
   const [projectResult, milestonesResult] = await Promise.all([
-    getProjectById(id, mandorId), //  kirim mandorId
-    getMilestonesByProjectId(id, mandorId) //  kirim mandorId
+    getProjectById(id), 
+    getMilestonesByProjectId(id) 
   ])
 
   // Handle unauthorized or not found
-  if (!projectResult.success) {
+  if (!projectResult.success || !projectResult.data) {
     if (projectResult.error === 'Akses ditolak' || projectResult.error === 'Unauthorized') {
       redirect('/unauthorized')
     }
     
     return (
       <div className="text-center py-12">
-        <p className="text-light-text-secondary dark:text-dark-text-secondary mb-4">
+        <p className="text-slate-600 mb-4">
           {projectResult.error || 'Proyek tidak ditemukan'}
         </p>
-        <a href="/mandor" className="text-light-primary dark:text-dark-primary hover:underline">
-          Kembali ke Dashboard
+        <a href="/mandor/proyek" className="text-blue-600 hover:underline">
+          Kembali ke Daftar Proyek
         </a>
       </div>
     )
   }
 
+  // Log error milestone jika ada, tapi jangan block halaman
   if (!milestonesResult.success) {
     console.error('Failed to fetch milestones:', milestonesResult.error)
   }
 
-  // Pass data to client component
+  // 3. Pass data to client component
+  // Pastikan properti yang dikirim sesuai dengan interface di DetailProyekClient
   return (
     <DetailProyekClient
-      project={projectResult.data} //  fixed: projects -> project
-      initialMilestones={milestonesResult.data || []} //  fixed: initialMilestone -> initialMilestones
+      project={(projectResult.data || []) as any}
+      initialMilestones={(milestonesResult.data || []) as any}
       mandor={{
         id: session.user.id,
         nama: session.user.name || 'Mandor'

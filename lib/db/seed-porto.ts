@@ -73,8 +73,8 @@ async function seedPortfolio() {
 
     console.log('📝 Seeding portfolio...')
     
-    let createdCount = 0
-    let skippedCount = 0
+    const createdCount = 0
+    const skippedCount = 0
 
     console.log(`🎉 Portfolio seed completed! Created: ${createdCount}, Skipped: ${skippedCount}`)
     

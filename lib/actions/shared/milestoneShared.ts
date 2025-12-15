@@ -156,7 +156,7 @@ export async function getMilestoneById(
 
     return { 
       success: true, 
-      data: milestone as MilestoneData
+      data: milestone as unknown as MilestoneData
     }
   } catch (error) {
     console.error('Error fetching milestone:', error)
@@ -220,17 +220,23 @@ export async function getUpcomingMilestones(
 ) {
   try {
     // Get user's projects based on role
-    let pQ = db
-      .select({ id: projeks.id })
-      .from(projeks)
+    let userProyek: { id: string }[] = []
     
     if (role === 'pelanggan') {
-      pQ = pQ.where(eq(projeks.pelangganId, userId))
+      userProyek = await db
+        .select({ id: projeks.id })
+        .from(projeks)
+        .where(eq(projeks.pelangganId, userId))
     } else if (role === 'mandor') {
-      pQ = pQ.where(eq(projeks.mandorId, userId))
+      userProyek = await db
+        .select({ id: projeks.id })
+        .from(projeks)
+        .where(eq(projeks.mandorId, userId))
+    } else {
+      userProyek = await db
+        .select({ id: projeks.id })
+        .from(projeks)
     }
-
-    const userProyek = await pQ
     const proyekIds = userProyek.map(p => p.id)
 
     if (proyekIds.length === 0) {

@@ -28,7 +28,7 @@ export async function getNotaByIdForKlien(notaId: string) {
     }
 
     // Log untuk debugging
-    console.log('🔐 Klien nota access:', {
+    console.log('Klien nota access:', {
       notaId,
       userId: session.user.id,
       userRole: session.user.role,

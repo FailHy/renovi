@@ -174,7 +174,7 @@ export default async function KlienDashboard() {
                         </div>
                         <div>
                           <p className="text-xs text-gray-400">Mandor</p>
-                          <p className="font-medium">{proyek.mandor.nama}</p>
+                          <p className="font-medium">{proyek.mandor?.nama || 'N/A'}</p>
                         </div>
                       </div>
                       

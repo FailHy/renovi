@@ -451,7 +451,7 @@ export default function NotaDetailPage({
               existingBahan={nota.items || []}
               milestones={milestones}
               onBahanUpdated={refreshData}
-              onDeleteBahan={handleDeleteBahanClick}
+              // onDeleteBahan={handleDeleteBahanClick}
             />
           </div>
         

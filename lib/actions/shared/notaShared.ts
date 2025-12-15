@@ -8,41 +8,36 @@ import { UserRole } from '@/lib/utils/sharedRoles'
 import { getProyekById } from './proyekShared'
 
 export interface NotaWithItems {
-  id: string
-  proyekId: string
-  milestoneId: string | null
-  createdBy: string
-  nomorNota: string | null
-  namaToko: string | null
-  fotoNotaUrl: string
-  tanggalBelanja: Date
-  createdAt: Date
-  updatedAt: Date
+  id: string;
+  proyekId: string;
+  milestoneId: string | null;
+  createdBy: string;
+  nomorNota: string | null;
+  namaToko: string | null;
+  fotoNotaUrl: string;
+  tanggalBelanja: Date;
+  createdAt: Date;
+  updatedAt: Date;
   creator?: {
-    id: string
-    nama: string
-  }
+    id: string;
+    nama: string;
+  };
   milestone?: {
-    id: string
-    nama: string
-  } | null
+    id: string;
+    nama: string;
+  } | null;
   items: Array<{
-    id: string
-    nama: string
-    deskripsi: string | null
-    harga: string
-    kuantitas: string
-    satuan: string
-    kategori: string | null
-    status: string
-    gambar: string[] | null
-    milestoneId: string | null
-    createdAt: Date
-    updatedAt: Date
-  }>
-  totalHarga: number
-  totalItems: number
-}
+    id: string;
+    nama: string;
+    satuan: "pcs" | "kg" | "gram" | "meter" | "cm" | "m2" | "m3" | "liter" | "ml" | "sak" | "buah" | "box" | "karung" | "roll" | "lembar";
+    harga: string;
+    kuantitas: string;
+    kategori: string | null;
+    status: string;
+  }>;
+  totalHarga: number;
+  totalItems: number;
+}   
 
 /**
  * Get all notas for a project

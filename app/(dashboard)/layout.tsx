@@ -35,7 +35,6 @@ export default async function DashboardLayout({
     <DashboardLayoutClient 
       role={userRole as AllowedRole}
       userName={session.user.name || 'User'}
-      userEmail={session.user.email || ''}
     >
       {children}
     </DashboardLayoutClient>

@@ -1,13 +1,16 @@
-// FILE: lib/actions/proyek.ts
+// FILE: lib/actions/admin/proyek.ts
 // ========================================
 'use server'
 
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
-import { projeks, type NewProjek, users } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { projeks, users } from '@/lib/db/schema'
+import { eq, inArray } from 'drizzle-orm' // Import inArray untuk query user yang efisien
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+
+// Definisi tipe status sesuai database untuk Type Casting
+type StatusProyek = 'Perencanaan' | 'Dalam Progress' | 'Selesai' | 'Dibatalkan'
 
 // Type untuk data dari form
 interface ProyekFormData {
@@ -38,7 +41,8 @@ export async function createProyek(formData: ProyekFormData) {
       alamat: formData.alamat,
       telpon: formData.telpon || null,
       mulai: new Date(formData.mulai),
-      status: formData.status,
+      // PERBAIKAN: Cast string ke tipe Enum StatusProyek
+      status: formData.status as StatusProyek,
       progress: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -73,7 +77,9 @@ export async function updateProyek(id: string, formData: Partial<ProyekFormData>
     if (formData.alamat !== undefined) updateData.alamat = formData.alamat
     if (formData.telpon !== undefined) updateData.telpon = formData.telpon || null
     if (formData.mulai !== undefined) updateData.mulai = new Date(formData.mulai)
-    if (formData.status !== undefined) updateData.status = formData.status
+    
+    // PERBAIKAN: Cast string ke tipe Enum StatusProyek
+    if (formData.status !== undefined) updateData.status = formData.status as StatusProyek
 
     const [proyek] = await db
       .update(projeks)
@@ -110,7 +116,6 @@ export async function getAllProyeks() {
   try {
     console.log('🔄 Fetching all proyeks with user data...')
     
-    // Gunakan query terpisah untuk menghindari alias conflict
     const proyeksData = await db
       .select({
         id: projeks.id,
@@ -124,17 +129,19 @@ export async function getAllProyeks() {
         deskripsi: projeks.deskripsi,
         telpon: projeks.telpon,
         mulai: projeks.mulai,
+        lastUpdate: projeks.lastUpdate, // Tambahkan ini agar sesuai interface Proyek di frontend
       })
       .from(projeks)
 
-    console.log('📊 Raw proyeks data:', proyeksData)
-
-    // Ambil data user secara terpisah
+    // Ambil data user secara terpisah (Batching)
     const pelangganIds = proyeksData.map(p => p.pelangganId).filter(Boolean)
-    const mandorIds = proyeksData.map(p => p.mandorId).filter(Boolean)
-    const allUserIds = [...new Set([...pelangganIds, ...mandorIds])]
+    const mandorIds = proyeksData.map(p => p.mandorId).filter((id): id is string => Boolean(id))
+    
+    const allUserIds = Array.from(new Set([...pelangganIds, ...mandorIds]))
 
     let usersData: any[] = []
+    
+    // PERBAIKAN LOGIKA FETCH USER
     if (allUserIds.length > 0) {
       usersData = await db
         .select({
@@ -144,23 +151,8 @@ export async function getAllProyeks() {
           email: users.email,
         })
         .from(users)
-        .where(eq(users.id, allUserIds[0])) // Drizzle doesn't support IN with uuid array easily
-        // Untuk sementara, ambil semua user dan filter di JavaScript
+        .where(inArray(users.id, allUserIds)) // Gunakan inArray untuk ambil banyak user sekaligus
     }
-
-    // Fallback: ambil semua user
-    if (usersData.length === 0) {
-      usersData = await db
-        .select({
-          id: users.id,
-          nama: users.nama,
-          username: users.username,
-          email: users.email,
-        })
-        .from(users)
-    }
-
-    console.log('👥 All users data:', usersData)
 
     // Format data dengan menggabungkan proyek dan user
     const formattedData = proyeksData.map(proyek => {
@@ -186,12 +178,14 @@ export async function getAllProyeks() {
         deskripsi: proyek.deskripsi,
         telpon: proyek.telpon,
         mulai: proyek.mulai instanceof Date 
-          ? proyek.mulai.toISOString().split('T')[0] 
-          : new Date(proyek.mulai).toISOString().split('T')[0],
+          ? proyek.mulai.toISOString() // Pastikan format ISO string
+          : new Date(proyek.mulai).toISOString(),
+        lastUpdate: proyek.lastUpdate instanceof Date
+          ? proyek.lastUpdate.toISOString() // Pastikan format ISO string
+          : new Date(proyek.lastUpdate || new Date()).toISOString()
       }
     })
 
-    console.log('🎯 Formatted proyek data:', formattedData)
     return formattedData
   } catch (error) {
     console.error('❌ Error fetching proyeks:', error)
@@ -202,8 +196,6 @@ export async function getAllProyeks() {
 // Fungsi untuk mendapatkan data pelanggan
 export async function getPelangganOptions() {
   try {
-    console.log('🔄 Fetching pelanggan options...')
-    
     const pelangganData = await db
       .select({
         id: users.id,
@@ -214,14 +206,11 @@ export async function getPelangganOptions() {
       .from(users)
       .where(eq(users.role, 'pelanggan'))
 
-    console.log('📊 Raw pelanggan data:', pelangganData)
-
     const options = pelangganData.map(user => ({
       value: user.id,
       label: user.nama || user.username || user.email,
     }))
 
-    console.log('🎯 Pelanggan options:', options)
     return options
   } catch (error) {
     console.error('❌ Error fetching pelanggan:', error)
@@ -232,8 +221,6 @@ export async function getPelangganOptions() {
 // Fungsi untuk mendapatkan data mandor
 export async function getMandorOptions() {
   try {
-    console.log('🔄 Fetching mandor options...')
-    
     const mandorData = await db
       .select({
         id: users.id,
@@ -244,8 +231,6 @@ export async function getMandorOptions() {
       .from(users)
       .where(eq(users.role, 'mandor'))
 
-    console.log('📊 Raw mandor data:', mandorData)
-
     const options = [
       { value: '', label: 'Belum ditentukan' },
       ...mandorData.map(user => ({
@@ -254,7 +239,6 @@ export async function getMandorOptions() {
       }))
     ]
 
-    console.log('🎯 Mandor options:', options)
     return options
   } catch (error) {
     console.error('❌ Error fetching mandor:', error)

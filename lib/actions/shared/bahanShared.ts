@@ -320,7 +320,7 @@ export async function getBahanByStatus(
     const bahanList = await db.query.bahanHarians.findMany({
       where: and(
         eq(bahanHarians.proyekId, proyekId),
-        eq(bahanHarians.status, status)
+        eq(bahanHarians.status, status as "Digunakan" | "Sisa" | "Rusak")
       ),
       with: {
         nota: {

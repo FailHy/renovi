@@ -15,6 +15,7 @@ import { getAdminPortfolios, togglePortfolioStatus } from '@/lib/actions/admin/p
 import { formatDate } from '@/lib/utils'
 import { toast } from 'react-hot-toast'
 import Image from 'next/image'
+import { Portfolio } from '@/lib/db/schema'
 
 interface AdminPortfolioItem {
   proyekId: string
@@ -30,6 +31,7 @@ interface AdminPortfolioItem {
 
 export default function ManajemenPortfolioPage() {
   const [items, setItems] = useState<AdminPortfolioItem[]>([])
+    const [potfolios, setPortfolios] = useState<Portfolio[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -42,14 +44,14 @@ export default function ManajemenPortfolioPage() {
     try {
       setLoading(true)
       const result = await getAdminPortfolios()
-      if (result.success && result.data) {
-        setItems(result.data as AdminPortfolioItem[])
+      if (result.success && Array.isArray(result.data)) {
+        setPortfolios(result.data as any)
       } else {
-        toast.error('Gagal memuat data portfolio')
+      setPortfolios([])
       }
-    } catch (error) {
-      console.error(error)
-      toast.error('Terjadi kesalahan sistem')
+    } catch (err) {
+      console.error('Error fetching portfolios:', err)
+      setPortfolios([])
     } finally {
       setLoading(false)
     }

@@ -17,6 +17,7 @@ import { TIPE_LAYANAN, PROJECT_STATUS } from '@/lib/constants'
 import { formatDate, cn } from '@/lib/utils'
 import { HeaderManajemenProyek } from '@/components/dashboard/HeaderDashboard'
 
+// ... (kode schema sama) ...
 const proyekSchema = z.object({
   nama: z.string().min(1, 'Nama proyek harus diisi'),
   tipeLayanan: z.string().min(1, 'Tipe layanan harus dipilih'),
@@ -46,15 +47,15 @@ interface Proyek {
   tipeLayanan: string
   pelangganId: string
   pelanggan: string
-  mandorId?: string
-  mandor?: string
+  mandorId: string | null
+  mandor: string | null
   status: string
   progress: number
   alamat: string
   deskripsi: string
-  telpon?: string
-  mulai: string
-  lastUpdate: string
+  telpon: string | null
+  mulai: Date
+  lastUpdate: Date
 }
 
 interface MandorOption {
@@ -66,6 +67,7 @@ export default function ManajemenProyekPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingProyek, setEditingProyek] = useState<Proyek | null>(null)
   const [proyeks, setProyeks] = useState<Proyek[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pelangganOptions, setPelangganOptions] = useState<any[]>([])
   const [mandorOptions, setMandorOptions] = useState<MandorOption[]>([])
   const [mandorLookup, setMandorLookup] = useState<Map<string, string>>(new Map())
@@ -75,7 +77,6 @@ export default function ManajemenProyekPage() {
   const [deletingProyek, setDeletingProyek] = useState<Proyek | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // State untuk notifikasi modal
   const [notificationModal, setNotificationModal] = useState<{
     isOpen: boolean;
     type: 'success' | 'error';
@@ -97,12 +98,10 @@ export default function ManajemenProyekPage() {
     resolver: zodResolver(proyekSchema),
   })
 
-  // Fetch data proyek dan options
   useEffect(() => {
     fetchData()
   }, [])
 
-  // Buat mandor lookup dari mandorOptions
   useEffect(() => {
     if (mandorOptions.length > 0) {
       const lookup = new Map<string, string>()
@@ -115,62 +114,55 @@ export default function ManajemenProyekPage() {
     }
   }, [mandorOptions])
 
-const fetchData = async () => {
-  try {
-    setLoading(true)
-    
-    const [proyeksData, pelangganData, mandorData] = await Promise.all([
-      getAllProyeks(),
-      getPelangganOptions(),
-      getMandorOptions()
-    ])
-    
-    // Filter out invalid proyeks (tanpa ID)
-    const validProyeks = (proyeksData || []).filter(proyek => 
-      proyek && proyek.id && proyek.id.trim() !== ""
-    )
-    
-    // Debug: tampilkan data yang bermasalah
-    const invalidProyeks = (proyeksData || []).filter(proyek => 
-      !proyek || !proyek.id || proyek.id.trim() === ""
-    )
-    
-    if (invalidProyeks.length > 0) {
-      console.warn('Invalid proyeks found (without ID):', invalidProyeks)
-    }
-    
-    // Process valid proyeks
-    const processedProyeks = validProyeks.map(proyek => {
-      let mandorNama = proyek.mandor
-      if (!mandorNama && mandorData && proyek.mandorId) {
-        const foundMandor = mandorData.find((m: MandorOption) => m.value === proyek.mandorId)
-        mandorNama = foundMandor ? foundMandor.label : undefined
-      }
+  const fetchData = async () => {
+    try {
+      setLoading(true)
       
-      return {
-        ...proyek,
-        mandor: mandorNama || undefined
-      }
-    })
-    
-    setProyeks(processedProyeks)
-    
-    // Set options
-    setPelangganOptions(pelangganData || [])
-    setMandorOptions(mandorData || [])
-    
-  } catch (error) {
-    console.error('❌ Error in fetchData:', error)
-    setProyeks([])
-    setPelangganOptions([])
-    setMandorOptions([])
-  } finally {
-    setLoading(false)
+      const [proyeksData, pelangganData, mandorData] = await Promise.all([
+        getAllProyeks(),
+        getPelangganOptions(),
+        getMandorOptions()
+      ])
+      
+      const validProyeks = (proyeksData || []).filter(proyek => 
+        proyek && proyek.id && proyek.id.trim() !== ""
+      )
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const processedProyeks = validProyeks.map((proyek: any) => {
+        let mandorNama = proyek.mandor
+        if (!mandorNama && mandorData && proyek.mandorId) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const foundMandor = mandorData.find((m: any) => m.value === proyek.mandorId)
+          mandorNama = foundMandor ? foundMandor.label : null
+        }
+        
+        return {
+          ...proyek,
+          mandorId: proyek.mandorId || null,
+          telpon: proyek.telpon || null,
+          mandor: mandorNama || null
+        }
+      })
+      
+      setProyeks(processedProyeks as Proyek[])
+      setPelangganOptions(pelangganData || [])
+      setMandorOptions(mandorData || [])
+      
+    } catch (error) {
+      console.error('❌ Error in fetchData:', error)
+      setProyeks([])
+      setPelangganOptions([])
+      setMandorOptions([])
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
-  // Fungsi untuk mendapatkan nama mandor dari mandorId
-  const getMandorName = (mandorId?: string): string | undefined => {
+  // ... (sisa fungsi handler sama seperti sebelumnya) ...
+  // PASTIKAN SEMUA BAGIAN BAWAH TERMASUK RETURN JSX ADA DI SINI
+  
+  const getMandorName = (mandorId: string | null): string | undefined => {
     if (!mandorId) return undefined
     return mandorLookup.get(mandorId)
   }
@@ -182,7 +174,7 @@ const fetchData = async () => {
       
       return (
         proyek.nama.toLowerCase().includes(searchLower) ||
-        proyek.pelanggan.toLowerCase().includes(searchLower) ||
+        proyek.pelanggan?.toLowerCase().includes(searchLower) ||
         proyek.alamat.toLowerCase().includes(searchLower) ||
         (mandorName && mandorName.toLowerCase().includes(searchLower))
       )
@@ -203,7 +195,7 @@ const fetchData = async () => {
         deskripsi: proyek.deskripsi,
         alamat: proyek.alamat,
         telpon: proyek.telpon || '',
-        mulai: proyek.mulai.split('T')[0],
+        mulai: new Date(proyek.mulai).toISOString().split('T')[0],
         status: proyek.status,
       })
     } else {
@@ -229,7 +221,6 @@ const fetchData = async () => {
     reset()
   }
 
-  // Fungsi untuk menampilkan notifikasi
   const showNotification = (type: 'success' | 'error', title: string, message: string) => {
     setNotificationModal({
       isOpen: true,
@@ -239,7 +230,6 @@ const fetchData = async () => {
     })
   }
 
-  // Fungsi untuk menutup notifikasi
   const closeNotification = () => {
     setNotificationModal(prev => ({ ...prev, isOpen: false }))
   }
@@ -342,7 +332,6 @@ const fetchData = async () => {
     return 'bg-green-500'
   }
 
-  // Calculate stats
   const getStats = () => {
     const total = proyeks.length
     const dalamProgress = proyeks.filter(p => p.status === 'Dalam Progress').length
@@ -357,7 +346,6 @@ const fetchData = async () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <HeaderManajemenProyek
         action={
           <Button 
@@ -370,7 +358,6 @@ const fetchData = async () => {
         }
       />
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Card className="border border-gray-200 shadow-sm">
           <CardContent className="p-6">
@@ -409,7 +396,6 @@ const fetchData = async () => {
         </Card>
       </div>
 
-      {/* Filters Section */}
       <Card className="mb-6 border border-gray-200 shadow-sm">
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -443,7 +429,6 @@ const fetchData = async () => {
         </div>
       </Card>
 
-      {/* Content Section */}
       {loading ? (
         <Card className="border border-gray-200 shadow-sm">
           <CardContent className="text-center py-16">
@@ -488,7 +473,6 @@ const fetchData = async () => {
                 key={proyek.id} 
                 className="border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col h-full"
               >
-                {/* Header dengan Status */}
                 <div className="relative flex-shrink-0">
                   <div className="aspect-video bg-gradient-to-br from-blue-50 to-blue-100 rounded-t-xl overflow-hidden p-6 flex items-center justify-center">
                     <div className="text-center">
@@ -511,14 +495,11 @@ const fetchData = async () => {
                   </div>
                 </div>
 
-                {/* Content Section */}
                 <CardContent className="p-6 flex flex-col flex-grow">
-                  {/* Nama Proyek */}
                   <h3 className="font-bold text-lg text-gray-900 mb-4 line-clamp-2 leading-tight">
                     {proyek.nama}
                   </h3>
 
-                  {/* Progress Bar */}
                   <div className="mb-6">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm font-medium text-gray-700">Progress</span>
@@ -542,9 +523,7 @@ const fetchData = async () => {
                     </div>
                   </div>
 
-                  {/* Info Details */}
                   <div className="space-y-4 mb-6">
-                    {/* Klien */}
                     <div className="flex items-center gap-3">
                       <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -553,7 +532,6 @@ const fetchData = async () => {
                       </div>
                     </div>
                     
-                    {/* Mandor - FIXED: Menggunakan fungsi getMandorName */}
                     <div className="flex items-center gap-3">
                       <Users className="w-4 h-4 text-gray-400 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -568,7 +546,6 @@ const fetchData = async () => {
                       </div>
                     </div>
                     
-                    {/* Alamat */}
                     <div className="flex items-start gap-3">
                       <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
@@ -578,7 +555,6 @@ const fetchData = async () => {
                     </div>
                   </div>
 
-                  {/* Deskripsi */}
                   <div className="mb-6">
                     <p className="text-xs text-gray-500 mb-1">Deskripsi</p>
                     <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">
@@ -586,7 +562,6 @@ const fetchData = async () => {
                     </p>
                   </div>
 
-                  {/* Footer with Actions */}
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
                     <div className="flex flex-col min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -629,6 +604,7 @@ const fetchData = async () => {
         </div>
       )}
 
+      {/* MODALS */}
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -695,7 +671,6 @@ const fetchData = async () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Pelanggan</label>
                   <Select
-                    //  FIX Select Placeholder
                     options={[{ value: '', label: 'Pilih Pelanggan' }, ...pelangganOptions]}
                     error={errors.pelangganId?.message}
                     {...register('pelangganId')}
@@ -706,7 +681,6 @@ const fetchData = async () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Mandor (Opsional)</label>
                   <Select
-                    //  FIX Select Placeholder
                     options={[{ value: '', label: 'Pilih Mandor' }, ...mandorOptions]}
                     error={errors.mandorId?.message}
                     {...register('mandorId')}
@@ -773,7 +747,6 @@ const fetchData = async () => {
         </form>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -804,12 +777,11 @@ const fetchData = async () => {
         </div>
       </Modal>
 
-      {/* Notification Modal */}
       <Modal
         isOpen={notificationModal.isOpen}
         onClose={closeNotification}
         size="md"
-        hideCloseButton={notificationModal.type === 'success'}
+        showCloseButton={notificationModal.type === 'success'}
       >
         <div className="text-center py-6 px-4">
           <div className="flex flex-col items-center gap-4">

@@ -14,6 +14,7 @@ interface DeleteConfirmModalProps {
   itemType?: 'bahan' | 'milestone' | 'nota' | 'proyek' | 'custom'
   onConfirm: () => void
   isLoading?: boolean
+  milestone?: any; // Add the milestone property here
 }
 
 export function DeleteConfirmModal({

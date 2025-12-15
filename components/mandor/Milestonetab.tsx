@@ -17,15 +17,16 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { formatDate } from '@/lib/utils/mandorUtils'
 import { toast } from 'react-hot-toast'
-import type { Milestone } from './types'
+import type { Milestone } from './type'
 
 interface MilestoneTabProps {
-  milestones: Milestone[]
-  proyekId: string
-  onAddMilestone: () => void
-  onEditMilestone: (milestone: Milestone) => void
-  onDeleteMilestone: (milestone: Milestone) => void
+  milestones: Milestone[];
+  proyekId: string;
   onRefresh?: () => void
+  onAddMilestone: () => void;
+  onEditMilestone: (milestone?: Milestone) => void;
+  onDeleteMilestone: (milestone: Milestone) => void;
+  onUpdateStatus: (milestoneId: string, status: "Belum Dimulai" | "Dalam Progress" | "Selesai") => Promise<void>;
 }
 
 export function MilestoneTab({ 
@@ -81,11 +82,11 @@ export function MilestoneTab({
       m.id === milestoneId 
         ? { 
             ...m, 
-            status: newStatus,
-            ...(newStatus === 'Selesai' && { selesai: new Date().toISOString() }),
-            ...(newStatus === 'Dalam Progress' && !m.mulai && { mulai: new Date().toISOString() })
+            status: newStatus as "Belum Dimulai" | "Dalam Progress" | "Selesai" | "Dibatalkan",
+            ...(newStatus === 'Selesai' && { selesai: new Date() }),
+            ...(newStatus === 'Dalam Progress' && !m.mulai && { mulai: new Date() })
           }
-        : m
+        :  m
     ))
     
     setUpdatingStatus(milestoneId)

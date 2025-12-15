@@ -183,7 +183,7 @@ export async function getProyekById(id: string, userId: string, role: UserRole) 
  */
 export async function getProyekByUser(userId: string, role: UserRole) {
   try {
-    let query = db
+    const query = db
       .select({
         projek: projeks,
         mandor: {
@@ -197,13 +197,28 @@ export async function getProyekByUser(userId: string, role: UserRole) {
       .orderBy(desc(projeks.lastUpdate))
 
     // Role-based filtering
-    let pQ = db.select({ id: projeks.id }).from(projeks)
+    let userProyek: { id: string }[] = []
+    
     if (role === 'pelanggan') {
-      pQ = pQ.where(eq(projeks.pelangganId, userId))
+      userProyek = await db
+        .select({ id: projeks.id })
+        .from(projeks)
+        .where(eq(projeks.pelangganId, userId))
     } else if (role === 'mandor') {
-      pQ = pQ.where(eq(projeks.mandorId, userId))
+      userProyek = await db
+        .select({ id: projeks.id })
+        .from(projeks)
+        .where(eq(projeks.mandorId, userId))
+    } else {
+      userProyek = await db
+        .select({ id: projeks.id })
+        .from(projeks)
     }
-    // Admin can see all projects (no filter)
+    const proyekIds = userProyek.map(p => p.id)
+
+    if (proyekIds.length === 0) {
+      return { success: true, data: [] }
+    }    // Admin can see all projects (no filter)
 
     const results = await query
 

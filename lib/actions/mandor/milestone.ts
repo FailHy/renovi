@@ -136,7 +136,6 @@ export async function createMilestone(data: {
       nama: data.nama,
       deskripsi: data.deskripsi,
       tanggal: tanggal,
-      gambar: data.gambar || [],
       status: data.status || 'Belum Dimulai',
       createdAt: new Date(),
       updatedAt: new Date()

@@ -24,50 +24,54 @@ export default async function BahanMasukPage({ params }: PageProps) {
   const { id: proyekId } = await params;
   const mandorId = session.user.id;
 
+  let projectData = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let bahanData: any[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let milestonesData: any[] = [];
+
   try {
     // 1. Verify project belongs to this mandor
     const projectResult = await getProjectById(proyekId);
     
     if (!projectResult.success || !projectResult.data) {
       console.error('Project not found or unauthorized:', projectResult.error);
-      redirect('/mandor/proyek');
-    }
-
-    // Check if project belongs to this mandor
-    if (projectResult.data.mandorId !== mandorId) {
+      // We'll handle the redirect outside the try/catch or just return null to trigger not found UI if needed
+    } else if (projectResult.data.mandorId !== mandorId) {
       console.error('Project does not belong to this mandor');
-      redirect('/unauthorized');
-    }
-
-    // 2. Fetch bahan data
-    let bahanData = [];
-    const bahanResult = await getBahanMasukByProyek(proyekId);
-    if (bahanResult.success && Array.isArray(bahanResult.data)) {
-      bahanData = bahanResult.data;
     } else {
-      console.warn('Failed to fetch bahan data:', bahanResult.error);
+      projectData = projectResult.data;
+
+      // 2. Fetch bahan data
+      const bahanResult = await getBahanMasukByProyek(proyekId);
+      if (bahanResult.success && Array.isArray(bahanResult.data)) {
+        bahanData = bahanResult.data;
+      } else {
+        console.warn('Failed to fetch bahan data:', bahanResult.error);
+      }
+
+      // 3. Fetch milestones data
+      const milestonesResult = await getMilestonesByProjectId(proyekId);
+      if (milestonesResult.success && Array.isArray(milestonesResult.data)) {
+        milestonesData = milestonesResult.data;
+      } else {
+        console.warn('Failed to fetch milestones:', milestonesResult.error);
+      }
     }
-
-    // 3. Fetch milestones data
-    let milestonesData = [];
-    const milestonesResult = await getMilestonesByProjectId(proyekId);
-    if (milestonesResult.success && Array.isArray(milestonesResult.data)) {
-      milestonesData = milestonesResult.data;
-    } else {
-      console.warn('Failed to fetch milestones:', milestonesResult.error);
-    }
-
-    return (
-      <BahanDashboard
-        proyek={projectResult.data}
-        bahanList={bahanData}
-        milestones={milestonesData}
-        mandorId={mandorId}
-      />
-    );
-
   } catch (error) {
     console.error('Error loading bahan page:', error);
+  }
+
+  if (!projectData) {
     redirect('/mandor/proyek');
   }
+
+  return (
+    <BahanDashboard
+      proyek={projectData}
+      bahanList={bahanData}
+      milestones={milestonesData}
+      mandorId={mandorId}
+    />
+  );
 }

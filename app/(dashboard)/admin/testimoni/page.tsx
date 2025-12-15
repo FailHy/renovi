@@ -68,6 +68,7 @@ export default function ManajemenTestimoniPage() {
       
       if (result.success && result.data) {
         //  UPDATE: Transform data dari database ke format yang sesuai
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const formattedTestimonis: TestimoniData[] = result.data.map((item: any) => ({
           id: item.id,
           komentar: item.comment || item.komentar || '',
@@ -147,7 +148,9 @@ export default function ManajemenTestimoniPage() {
     if (!actionTestimoni) return
 
     try {
-      let result
+      // PERBAIKAN: Definisi tipe eksplisit untuk result
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let result: { success: boolean; error?: string; data?: any }
       
       if (actionType === 'approve') {
         //  Approve testimoni dengan data real
@@ -256,7 +259,7 @@ export default function ManajemenTestimoniPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Approved</p>
-                <p className="text-3xl font-bold text-grey-900">{stats.approved}</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.approved}</p>
               </div>
               <MessageSquare className="w-12 h-12 text-blue-600 opacity-20" />
             </div>
@@ -279,7 +282,7 @@ export default function ManajemenTestimoniPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-graay-600 mb-1">
+                <p className="text-sm text-gray-600 mb-1">
                   Rata-rata Rating
                 </p>
                 <div className="flex items-center gap-2">
@@ -410,7 +413,7 @@ export default function ManajemenTestimoniPage() {
 
                 {/* Comment */}
                 <p className="text-sm text-gray-600 mb-4 line-clamp-3 italic">
-                  "{testimoni.komentar}"
+                  &quot;{testimoni.komentar}&quot;
                 </p>
 
                 {/* Actions */}
@@ -503,7 +506,7 @@ export default function ManajemenTestimoniPage() {
                 Komentar
               </label>
               <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 italic">
-                "{selectedTestimoni.komentar}"
+                &quot;{selectedTestimoni.komentar}&quot;
               </div>
             </div>
 
@@ -514,6 +517,7 @@ export default function ManajemenTestimoniPage() {
                   Foto
                 </label>
                 <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={selectedTestimoni.gambar}
                     alt="Testimoni"

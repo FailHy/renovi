@@ -1,7 +1,7 @@
 // File: components/dashboard/ProjectChart.tsx
 'use client'
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell, ResponsiveContainer } from 'recharts'
 
 interface ChartData {
   name: string
@@ -14,7 +14,7 @@ interface ProjectProgressChartProps {
 
 export default function ProjectProgressChart({ data }: ProjectProgressChartProps) {
   // Warna untuk setiap status
-  const COLORS = {
+  const COLORS: Record<string, string> = {
     'Perencanaan': '#F59E0B', // Yellow/Orange
     'Berlangsung': '#3B82F6', // Blue
     'Selesai': '#10B981', // Green
@@ -24,13 +24,14 @@ export default function ProjectProgressChart({ data }: ProjectProgressChartProps
   // Custom Tooltip
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
+      const tooltipData = payload[0].payload
       return (
         <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
           <p className="font-semibold text-gray-900 dark:text-white">
-            {payload[0].payload.name}
+            {tooltipData.name}
           </p>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Total: <span className="font-bold">{payload[0].value}</span> proyek
+            Total: <span className="font-bold">{tooltipData.progress}</span> proyek
           </p>
         </div>
       )
@@ -68,7 +69,7 @@ export default function ProjectProgressChart({ data }: ProjectProgressChartProps
             {data.map((entry, index) => (
               <Cell 
                 key={`cell-${index}`} 
-                fill={COLORS[entry.name as keyof typeof COLORS] || '#3B82F6'} 
+                fill={COLORS[entry.name] || '#3B82F6'} 
               />
             ))}
           </Bar> 

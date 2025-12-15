@@ -42,7 +42,7 @@ export async function PUT(
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    return NextResponse.json({ data: result.data });
+    return NextResponse.json({ data: result });
   } catch (error) {
     console.error("API Error updating milestone:", error);
     return NextResponse.json(
@@ -73,7 +73,7 @@ export async function DELETE(
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    return NextResponse.json({ message: result.message });
+    return NextResponse.json({ message: result });
   } catch (error) {
     console.error("API Error deleting milestone:", error);
     return NextResponse.json(

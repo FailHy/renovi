@@ -9,14 +9,14 @@ interface DashboardLayoutClientProps {
   children: React.ReactNode
   role: 'admin' | 'pelanggan' | 'mandor'
   userName: string
-  userEmail: string
+  // userEmail: string
 }
 
 export function DashboardLayoutClient({ 
   children, 
   role, 
   userName,
-  userEmail 
+  // userEmail 
 }: DashboardLayoutClientProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
@@ -80,7 +80,6 @@ export function DashboardLayoutClient({
       <Sidebar 
         role={role} 
         userName={userName}
-        userEmail={userEmail}
         isMobileMenuOpen={isMobileMenuOpen}
         onMobileMenuClose={() => setIsMobileMenuOpen(false)}
         isCollapsed={isSidebarCollapsed}

@@ -12,7 +12,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
-    const portfoliosData = await db
+    // 1. Ambil data secara FLAT (datar) agar type inference Drizzle bekerja dengan benar
+    const rawPortfolios = await db
       .select({
         id: portfolios.id,
         proyekId: portfolios.proyekId,
@@ -27,18 +28,39 @@ export async function GET(request: NextRequest) {
         published: portfolios.published,
         createdAt: portfolios.createdAt,
         updatedAt: portfolios.updatedAt,
-        proyek: {
-          nama: projeks.nama,
-          status: projeks.status,
-          pelanggan: {
-            name: users.nama
-          }
-        }
+        // Ambil data relasi sebagai kolom flat dengan alias
+        proyekNama: projeks.nama,
+        proyekStatus: projeks.status,
+        pelangganNama: users.nama
       })
       .from(portfolios)
       .leftJoin(projeks, eq(portfolios.proyekId, projeks.id))
       .leftJoin(users, eq(projeks.pelangganId, users.id))
       .orderBy(desc(portfolios.createdAt))
+
+    // 2. Map data flat ke struktur nested yang diinginkan
+    const portfoliosData = rawPortfolios.map(item => ({
+      id: item.id,
+      proyekId: item.proyekId,
+      name: item.name,
+      client: item.client,
+      location: item.location,
+      category: item.category,
+      duration: item.duration,
+      completedDate: item.completedDate,
+      description: item.description,
+      imageUrl: item.imageUrl,
+      published: item.published,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+      proyek: {
+        nama: item.proyekNama,
+        status: item.proyekStatus,
+        pelanggan: {
+          name: item.pelangganNama
+        }
+      }
+    }))
 
     return NextResponse.json({ 
       success: true, 

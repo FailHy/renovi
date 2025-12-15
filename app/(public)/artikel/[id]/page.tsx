@@ -55,7 +55,7 @@ async function getRelatedArticles(currentId: string, kategori: string | null) {
       .orderBy(desc(artikels.posting))
       .limit(6)
     
-    let filtered = allArticles.filter(a => a.id !== currentId)
+    const filtered = allArticles.filter(a => a.id !== currentId)
     
     if (kategori) {
       const sameCategory = filtered.filter(a => a.kategori === kategori)

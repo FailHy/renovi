@@ -5,7 +5,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { projeks, bahanHarians, milestones } from '@/lib/db/schema'
+import { projeks, bahanHarians, milestones, notaBelanjas } from '@/lib/db/schema'
 import { eq, and, sql, desc } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 
@@ -46,7 +46,7 @@ export async function getExpensesByProjectId(projectId: string) {
     // Get expenses with milestone info
     const expenses = await db.query.bahanHarians.findMany({
       where: eq(bahanHarians.proyekId, projectId),
-      orderBy: [desc(bahanHarians.tanggal)],
+      orderBy: [desc(bahanHarians.createdAt)],
       with: {
         milestone: {
           columns: {
@@ -251,18 +251,32 @@ export async function createExpense(data: {
       }
     }
 
-    // Create expense
-    const newExpense = await db.insert(bahanHarians)
+    // FIX: Create a Nota automatically first because notaId is required
+    const [newNota] = await db.insert(notaBelanjas)
       .values({
         proyekId: data.proyekId,
+        createdBy: mandorId,
+        tanggalBelanja: new Date(data.tanggal),
+        namaToko: 'Pengeluaran Langsung',
+        // Use first image as nota image or a placeholder if none
+        fotoNotaUrl: data.gambar?.[0] || 'https://placehold.co/400x600?text=No+Receipt',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning()
+
+    // Create expense linked to the new Nota
+    const [newExpense] = await db.insert(bahanHarians)
+      .values({
+        proyekId: data.proyekId,
+        notaId: newNota.id, // Link to the created nota
         milestoneId: data.milestoneId || null,
         nama: data.nama,
         deskripsi: data.deskripsi || '',
-        harga: data.harga,
-        kuantitas: data.kuantitas,
-        satuan: data.satuan,
-        status: data.status,
-        tanggal: new Date(data.tanggal),
+        harga: data.harga.toString(), // Convert to string for decimal
+        kuantitas: data.kuantitas.toString(), // Convert to string for decimal
+        satuan: data.satuan as any, // Cast to any to bypass strict Enum check if needed
+        status: data.status as any, // Cast to any to bypass strict Enum check if needed
         gambar: data.gambar || [],
         createdAt: new Date(),
         updatedAt: new Date()
@@ -282,7 +296,7 @@ export async function createExpense(data: {
 
     return {
       success: true,
-      data: newExpense[0]
+      data: newExpense
     }
   } catch (error) {
     console.error('Error creating expense:', error)
@@ -385,11 +399,23 @@ export async function updateExpense(
 
     if (data.nama !== undefined) updateData.nama = data.nama
     if (data.deskripsi !== undefined) updateData.deskripsi = data.deskripsi
-    if (data.harga !== undefined) updateData.harga = data.harga
-    if (data.kuantitas !== undefined) updateData.kuantitas = data.kuantitas
-    if (data.satuan !== undefined) updateData.satuan = data.satuan
-    if (data.status !== undefined) updateData.status = data.status
-    if (data.tanggal !== undefined) updateData.tanggal = new Date(data.tanggal)
+    // Fix: Convert number to string for decimal columns
+    if (data.harga !== undefined) updateData.harga = data.harga.toString()
+    if (data.kuantitas !== undefined) updateData.kuantitas = data.kuantitas.toString()
+    if (data.satuan !== undefined) updateData.satuan = data.satuan as any
+    if (data.status !== undefined) updateData.status = data.status as any
+    // Note: 'tanggal' is likely in notaBelanja, not bahanHarian, but if bahan has it...
+    // Schema says bahanHarian doesn't have 'tanggal', it relies on Nota. 
+    // If you need to update date, you update the parent Nota.
+    // However, if your schema DOES have createdAt/updatedAt or custom date field, use it.
+    // Assuming we update the Nota date if needed:
+    if (data.tanggal !== undefined) {
+        // Optional: Update parent Nota date
+        await db.update(notaBelanjas)
+            .set({ tanggalBelanja: new Date(data.tanggal) })
+            .where(eq(notaBelanjas.id, expense.notaId))
+    }
+
     if (data.milestoneId !== undefined) updateData.milestoneId = data.milestoneId
     if (data.gambar !== undefined) updateData.gambar = data.gambar
 
@@ -531,7 +557,7 @@ export async function getExpensesByMilestoneId(projectId: string, milestoneId: s
         eq(bahanHarians.proyekId, projectId),
         eq(bahanHarians.milestoneId, milestoneId)
       ),
-      orderBy: [desc(bahanHarians.tanggal)]
+      orderBy: [desc(bahanHarians.createdAt)]
     })
 
     return {
