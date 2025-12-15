@@ -9,26 +9,21 @@ import {
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-// DEFINISIKAN TIPE PARAMS SESUAI NAMA FOLDER [Milestonesid]
-type Params = Promise<{ id: string; Milestonesid: string }>;
-
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Params }
+  { params }: { params: { id: string; milestoneId: string } }
 ) {
   try {
+    // Check authentication
     const session = await getServerSession(authOptions);
 
     if (!session?.user || session.user.role !== "mandor") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // AWAIT PARAMS & SESUAIKAN NAMA
-    const { Milestonesid } = await params;
     const body = await request.json();
 
-    // Gunakan Milestonesid
-    const result = await updateMilestone(Milestonesid, {
+    const result = await updateMilestone(params.milestoneId, {
       nama: body.nama,
       deskripsi: body.deskripsi,
       tanggal: body.tanggal,
@@ -52,19 +47,17 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Params }
+  { params }: { params: { id: string; milestoneId: string } }
 ) {
   try {
+    // Check authentication
     const session = await getServerSession(authOptions);
 
     if (!session?.user || session.user.role !== "mandor") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // AWAIT PARAMS
-    const { Milestonesid } = await params;
-
-    const result = await deleteMilestone(Milestonesid);
+    const result = await deleteMilestone(params.milestoneId);
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 400 });

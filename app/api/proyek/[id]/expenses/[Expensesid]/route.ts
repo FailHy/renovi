@@ -1,22 +1,16 @@
+// ========================================
 // FILE: app/api/projects/[id]/expenses/[expenseId]/route.ts
 // ========================================
 import { NextRequest, NextResponse } from "next/server";
 import { updateExpense, deleteExpense } from "@/lib/actions/mandor/pengeluaran";
 
-// DEFINISIKAN TIPE PARAMS
-type Params = Promise<{ id: string; Expensesid: string }>;
-
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Params } // Params kini Promise
+  { params }: { params: { id: string; expenseId: string } }
 ) {
-  // 1. AWAIT PARAMS TERLEBIH DAHULU
-  const { Expensesid } = await params;
-
   const body = await request.json();
 
-  // Gunakan Expensesid yang sudah di-await
-  const result = await updateExpense(Expensesid, {
+  const result = await updateExpense(params.expenseId, {
     nama: body.nama,
     deskripsi: body.deskripsi,
     harga: body.harga,
@@ -37,13 +31,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Params } // Params kini Promise
+  { params }: { params: { id: string; expenseId: string } }
 ) {
-  // 1. AWAIT PARAMS
-  const { Expensesid } = await params;
-
-  // Gunakan Expensesid
-  const result = await deleteExpense(Expensesid);
+  const result = await deleteExpense(params.expenseId);
 
   if (!result.success) {
     return NextResponse.json({ error: result.error }, { status: 400 });
