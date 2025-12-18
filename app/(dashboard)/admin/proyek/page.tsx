@@ -1,354 +1,487 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, Search, Users, User, Calendar, Briefcase, MapPin, Phone, Home, CheckCircle, Clock, AlertCircle, XCircle, CheckCircle2 } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
-import { Textarea } from '@/components/ui/TextArea'
-import { Modal } from '@/components/ui/Modal'
-import { Badge } from '@/components/ui/Badge'
-import { Card, CardContent } from '@/components/ui/Card'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { createProyek, updateProyek, deleteProyek, getAllProyeks, getPelangganOptions, getMandorOptions } from '@/lib/actions/admin/proyek'
-import { TIPE_LAYANAN, PROJECT_STATUS } from '@/lib/constants'
-import { formatDate, cn } from '@/lib/utils'
-import { HeaderManajemenProyek } from '@/components/dashboard/HeaderDashboard'
+import { useState, useEffect, useRef } from "react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  Users,
+  User,
+  Calendar,
+  Briefcase,
+  MapPin,
+  Phone,
+  Home,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  XCircle,
+  CheckCircle2,
+  Upload,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/TextArea";
+import { Modal } from "@/components/ui/Modal";
+import { Badge } from "@/components/ui/Badge";
+import { Card, CardContent } from "@/components/ui/Card";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  createProyek,
+  updateProyek,
+  deleteProyek,
+  getAllProyeks,
+  getPelangganOptions,
+  getMandorOptions,
+} from "@/lib/actions/admin/proyek";
+import { TIPE_LAYANAN, PROJECT_STATUS } from "@/lib/constants";
+import { formatDate, cn } from "@/lib/utils";
+import { HeaderManajemenProyek } from "@/components/dashboard/HeaderDashboard";
+import Image from "next/image";
 
-// ... (kode schema sama) ...
 const proyekSchema = z.object({
-  nama: z.string().min(1, 'Nama proyek harus diisi'),
-  tipeLayanan: z.string().min(1, 'Tipe layanan harus dipilih'),
-  pelangganId: z.string().min(1, 'Pelanggan harus dipilih'),
+  nama: z.string().min(1, "Nama proyek harus diisi"),
+  tipeLayanan: z.string().min(1, "Tipe layanan harus dipilih"),
+  pelangganId: z.string().min(1, "Pelanggan harus dipilih"),
   mandorId: z.string().optional(),
-  deskripsi: z.string().min(1, 'Deskripsi harus diisi'),
-  alamat: z.string().min(1, 'Alamat harus diisi'),
-  telpon: z.string().optional()
+  gambar: z.string().optional(),
+  deskripsi: z.string().min(1, "Deskripsi harus diisi"),
+  alamat: z.string().min(1, "Alamat harus diisi"),
+  telpon: z
+    .string()
+    .optional()
     .refine((val) => !val || /^\d+$/.test(val), {
-      message: 'Nomor telepon hanya boleh berisi angka',
+      message: "Nomor telepon hanya boleh berisi angka",
     })
     .refine((val) => !val || val.length >= 11, {
-      message: 'Nomor telepon minimal 11 digit',
+      message: "Nomor telepon minimal 11 digit",
     })
     .refine((val) => !val || val.length <= 15, {
-      message: 'Nomor telepon maksimal 15 digit',
+      message: "Nomor telepon maksimal 15 digit",
     }),
-  mulai: z.string().min(1, 'Tanggal mulai harus diisi'),
-  status: z.string().min(1, 'Status harus dipilih'),
-})
+  mulai: z.string().min(1, "Tanggal mulai harus diisi"),
+  status: z.string().min(1, "Status harus dipilih"),
+});
 
-type ProyekFormData = z.infer<typeof proyekSchema>
+type ProyekFormData = z.infer<typeof proyekSchema>;
 
 interface Proyek {
-  id: string
-  nama: string
-  tipeLayanan: string
-  pelangganId: string
-  pelanggan: string
-  mandorId: string | null
-  mandor: string | null
-  status: string
-  progress: number
-  alamat: string
-  deskripsi: string
-  telpon: string | null
-  mulai: Date
-  lastUpdate: Date
+  id: string;
+  nama: string;
+  gambar: string | null;
+  tipeLayanan: string;
+  pelangganId: string;
+  pelanggan: string;
+  mandorId: string | null;
+  mandor: string | null;
+  status: string;
+  progress: number;
+  alamat: string;
+  deskripsi: string;
+  telpon: string | null;
+  mulai: Date;
+  lastUpdate: Date;
 }
 
-interface MandorOption {
-  value: string
-  label: string
+interface Option {
+  value: string;
+  label: string;
 }
 
 export default function ManajemenProyekPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingProyek, setEditingProyek] = useState<Proyek | null>(null)
-  const [proyeks, setProyeks] = useState<Proyek[]>([])
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [pelangganOptions, setPelangganOptions] = useState<any[]>([])
-  const [mandorOptions, setMandorOptions] = useState<MandorOption[]>([])
-  const [mandorLookup, setMandorLookup] = useState<Map<string, string>>(new Map())
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [deletingProyek, setDeletingProyek] = useState<Proyek | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProyek, setEditingProyek] = useState<Proyek | null>(null);
+  const [proyeks, setProyeks] = useState<Proyek[]>([]);
+
+  const [pelangganOptions, setPelangganOptions] = useState<Option[]>([]);
+  const [mandorOptions, setMandorOptions] = useState<Option[]>([]);
+
+  const [mandorLookup, setMandorLookup] = useState<Map<string, string>>(
+    new Map()
+  );
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingProyek, setDeletingProyek] = useState<Proyek | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [notificationModal, setNotificationModal] = useState<{
     isOpen: boolean;
-    type: 'success' | 'error';
+    type: "success" | "error";
     title: string;
     message: string;
   }>({
     isOpen: false,
-    type: 'success',
-    title: '',
-    message: ''
-  })
+    type: "success",
+    title: "",
+    message: "",
+  });
 
   const {
     register,
     handleSubmit,
+    setValue,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<ProyekFormData>({
     resolver: zodResolver(proyekSchema),
-  })
+  });
+
+  const imagePreview = watch("gambar");
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    fetchData();
+  }, []);
 
   useEffect(() => {
     if (mandorOptions.length > 0) {
-      const lookup = new Map<string, string>()
-      mandorOptions.forEach(mandor => {
+      const lookup = new Map<string, string>();
+      mandorOptions.forEach((mandor) => {
         if (mandor.value && mandor.label) {
-          lookup.set(mandor.value, mandor.label)
+          lookup.set(mandor.value, mandor.label);
         }
-      })
-      setMandorLookup(lookup)
+      });
+      setMandorLookup(lookup);
     }
-  }, [mandorOptions])
+  }, [mandorOptions]);
 
   const fetchData = async () => {
     try {
-      setLoading(true)
-      
+      setLoading(true);
+
       const [proyeksData, pelangganData, mandorData] = await Promise.all([
         getAllProyeks(),
         getPelangganOptions(),
-        getMandorOptions()
-      ])
-      
-      const validProyeks = (proyeksData || []).filter(proyek => 
-        proyek && proyek.id && proyek.id.trim() !== ""
-      )
-      
+        getMandorOptions(),
+      ]);
+
+      const validProyeks = (proyeksData || []).filter(
+        (proyek) => proyek && proyek.id && proyek.id.trim() !== ""
+      );
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const processedProyeks = validProyeks.map((proyek: any) => {
-        let mandorNama = proyek.mandor
+        let mandorNama = proyek.mandor;
         if (!mandorNama && mandorData && proyek.mandorId) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const foundMandor = mandorData.find((m: any) => m.value === proyek.mandorId)
-          mandorNama = foundMandor ? foundMandor.label : null
+          const foundMandor = mandorData.find(
+            (m: any) => m.value === proyek.mandorId
+          );
+          mandorNama = foundMandor ? foundMandor.label : null;
         }
-        
+
         return {
           ...proyek,
           mandorId: proyek.mandorId || null,
           telpon: proyek.telpon || null,
-          mandor: mandorNama || null
-        }
-      })
-      
-      setProyeks(processedProyeks as Proyek[])
-      setPelangganOptions(pelangganData || [])
-      setMandorOptions(mandorData || [])
-      
-    } catch (error) {
-      console.error('❌ Error in fetchData:', error)
-      setProyeks([])
-      setPelangganOptions([])
-      setMandorOptions([])
-    } finally {
-      setLoading(false)
-    }
-  }
+          mandor: mandorNama || null,
+          gambar: proyek.gambar || null,
+        };
+      });
 
-  // ... (sisa fungsi handler sama seperti sebelumnya) ...
-  // PASTIKAN SEMUA BAGIAN BAWAH TERMASUK RETURN JSX ADA DI SINI
-  
+      setProyeks(processedProyeks as Proyek[]);
+      setPelangganOptions(pelangganData || []);
+      setMandorOptions(mandorData || []);
+    } catch (error) {
+      console.error("❌ Error in fetchData:", error);
+      setProyeks([]);
+      setPelangganOptions([]);
+      setMandorOptions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getMandorName = (mandorId: string | null): string | undefined => {
-    if (!mandorId) return undefined
-    return mandorLookup.get(mandorId)
-  }
+    if (!mandorId) return undefined;
+    return mandorLookup.get(mandorId);
+  };
 
   const filteredProyeks = proyeks
     .filter((proyek) => {
-      const searchLower = searchTerm.toLowerCase()
-      const mandorName = getMandorName(proyek.mandorId)
-      
+      const searchLower = searchTerm.toLowerCase();
+      const mandorName = getMandorName(proyek.mandorId);
+
       return (
         proyek.nama.toLowerCase().includes(searchLower) ||
         proyek.pelanggan?.toLowerCase().includes(searchLower) ||
         proyek.alamat.toLowerCase().includes(searchLower) ||
         (mandorName && mandorName.toLowerCase().includes(searchLower))
-      )
+      );
     })
-    .filter((proyek) => 
-      statusFilter === 'all' || proyek.status === statusFilter
+    .filter(
+      (proyek) => statusFilter === "all" || proyek.status === statusFilter
     )
-    .sort((a, b) => new Date(b.lastUpdate).getTime() - new Date(a.lastUpdate).getTime())
+    .sort(
+      (a, b) =>
+        new Date(b.lastUpdate).getTime() - new Date(a.lastUpdate).getTime()
+    );
 
   const handleOpenModal = (proyek?: Proyek) => {
     if (proyek) {
-      setEditingProyek(proyek)
+      setEditingProyek(proyek);
       reset({
         nama: proyek.nama,
         tipeLayanan: proyek.tipeLayanan,
         pelangganId: proyek.pelangganId,
-        mandorId: proyek.mandorId || '',
+        mandorId: proyek.mandorId || "",
+        gambar: proyek.gambar || "",
         deskripsi: proyek.deskripsi,
         alamat: proyek.alamat,
-        telpon: proyek.telpon || '',
-        mulai: new Date(proyek.mulai).toISOString().split('T')[0],
+        telpon: proyek.telpon || "",
+        mulai: new Date(proyek.mulai).toISOString().split("T")[0],
         status: proyek.status,
-      })
+      });
     } else {
-      setEditingProyek(null)
+      setEditingProyek(null);
       reset({
-        nama: '',
-        tipeLayanan: '',
-        pelangganId: '',
-        mandorId: '',
-        deskripsi: '',
-        alamat: '',
-        telpon: '',
-        mulai: new Date().toISOString().split('T')[0],
-        status: 'Perencanaan',
-      })
+        nama: "",
+        tipeLayanan: "",
+        pelangganId: "",
+        mandorId: "",
+        gambar: "",
+        deskripsi: "",
+        alamat: "",
+        telpon: "",
+        mulai: new Date().toISOString().split("T")[0],
+        status: "Perencanaan",
+      });
     }
-    setIsModalOpen(true)
-  }
+    setIsModalOpen(true);
+  };
 
   const handleCloseModal = () => {
-    setIsModalOpen(false)
-    setEditingProyek(null)
-    reset()
-  }
+    setIsModalOpen(false);
+    setEditingProyek(null);
+    reset();
+  };
 
-  const showNotification = (type: 'success' | 'error', title: string, message: string) => {
+  const showNotification = (
+    type: "success" | "error",
+    title: string,
+    message: string
+  ) => {
     setNotificationModal({
       isOpen: true,
       type,
       title,
-      message
-    })
-  }
+      message,
+    });
+  };
 
   const closeNotification = () => {
-    setNotificationModal(prev => ({ ...prev, isOpen: false }))
-  }
+    setNotificationModal((prev) => ({ ...prev, isOpen: false }));
+  };
 
   const onSubmit = async (data: ProyekFormData) => {
     try {
-      let result
+      let result;
       if (editingProyek) {
-        result = await updateProyek(editingProyek.id, data)
+        result = await updateProyek(editingProyek.id, data);
       } else {
-        result = await createProyek(data)
+        result = await createProyek(data);
       }
-      
+
       if (result.success) {
         showNotification(
-          'success',
-          editingProyek ? 'Proyek Berhasil Diupdate' : 'Proyek Berhasil Dibuat',
-          editingProyek 
-            ? 'Perubahan pada proyek telah berhasil disimpan.'
-            : 'Proyek baru telah berhasil ditambahkan ke dalam sistem.'
-        )
-        await fetchData()
-        handleCloseModal()
+          "success",
+          editingProyek ? "Proyek Berhasil Diupdate" : "Proyek Berhasil Dibuat",
+          editingProyek
+            ? "Perubahan pada proyek telah berhasil disimpan."
+            : "Proyek baru telah berhasil ditambahkan ke dalam sistem."
+        );
+        await fetchData();
+        handleCloseModal();
       } else {
         showNotification(
-          'error',
-          editingProyek ? 'Gagal Mengupdate Proyek' : 'Gagal Membuat Proyek',
-          result.error || `Gagal ${editingProyek ? 'mengupdate' : 'membuat'} proyek`
-        )
+          "error",
+          editingProyek ? "Gagal Mengupdate Proyek" : "Gagal Membuat Proyek",
+          result.error ||
+            `Gagal ${editingProyek ? "mengupdate" : "membuat"} proyek`
+        );
       }
     } catch (error) {
-      console.error('Error:', error)
+      console.error("Error:", error);
       showNotification(
-        'error',
-        'Terjadi Kesalahan',
-        'Terjadi kesalahan sistem saat menyimpan data. Silakan coba lagi.'
-      )
+        "error",
+        "Terjadi Kesalahan",
+        "Terjadi kesalahan sistem saat menyimpan data. Silakan coba lagi."
+      );
     }
-  }
+  };
 
   const handleDelete = (proyek: Proyek) => {
-    setDeletingProyek(proyek)
-    setIsDeleteModalOpen(true)
-  }
+    setDeletingProyek(proyek);
+    setIsDeleteModalOpen(true);
+  };
 
   const confirmDelete = async () => {
-    if (!deletingProyek) return
+    if (!deletingProyek) return;
 
     try {
-      const result = await deleteProyek(deletingProyek.id)
+      const result = await deleteProyek(deletingProyek.id);
       if (result.success) {
         showNotification(
-          'success',
-          'Proyek Berhasil Dihapus',
-          'Proyek telah berhasil dihapus dari sistem.'
-        )
-        await fetchData()
+          "success",
+          "Proyek Berhasil Dihapus",
+          "Proyek telah berhasil dihapus dari sistem."
+        );
+        await fetchData();
       } else {
         showNotification(
-          'error',
-          'Gagal Menghapus Proyek',
-          result.error || 'Gagal menghapus proyek'
-        )
+          "error",
+          "Gagal Menghapus Proyek",
+          result.error || "Gagal menghapus proyek"
+        );
       }
-      setIsDeleteModalOpen(false)
-      setDeletingProyek(null)
+      setIsDeleteModalOpen(false);
+      setDeletingProyek(null);
     } catch (error) {
-      console.error('Error:', error)
+      console.error("Error:", error);
       showNotification(
-        'error',
-        'Terjadi Kesalahan',
-        'Terjadi kesalahan sistem saat menghapus data. Silakan coba lagi.'
-      )
+        "error",
+        "Terjadi Kesalahan",
+        "Terjadi kesalahan sistem saat menghapus data. Silakan coba lagi."
+      );
     }
-  }
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Perencanaan': return <AlertCircle className="w-4 h-4 text-blue-600" />
-      case 'Dalam Progress': return <Clock className="w-4 h-4 text-yellow-600" />
-      case 'Selesai': return <CheckCircle className="w-4 h-4 text-green-600" />
-      case 'Dibatalkan': return <XCircle className="w-4 h-4 text-red-600" />
-      default: return <AlertCircle className="w-4 h-4 text-gray-600" />
+      case "Perencanaan":
+        return <AlertCircle className="w-4 h-4 text-blue-600" />;
+      case "Dalam Progress":
+        return <Clock className="w-4 h-4 text-yellow-600" />;
+      case "Selesai":
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case "Dibatalkan":
+        return <XCircle className="w-4 h-4 text-red-600" />;
+      default:
+        return <AlertCircle className="w-4 h-4 text-gray-600" />;
     }
-  }
+  };
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      'Perencanaan': 'bg-blue-50 text-blue-700 border-blue-200',
-      'Dalam Progress': 'bg-yellow-50 text-yellow-700 border-yellow-200',
-      'Selesai': 'bg-green-50 text-green-700 border-green-200',
-      'Dibatalkan': 'bg-red-50 text-red-700 border-red-200',
-    }
-    return colors[status] || 'bg-gray-50 text-gray-700 border-gray-200'
-  }
+      Perencanaan: "bg-blue-50 text-blue-700 border-blue-200",
+      "Dalam Progress": "bg-yellow-50 text-yellow-700 border-yellow-200",
+      Selesai: "bg-green-50 text-green-700 border-green-200",
+      Dibatalkan: "bg-red-50 text-red-700 border-red-200",
+    };
+    return colors[status] || "bg-gray-50 text-gray-700 border-gray-200";
+  };
 
   const getProgressColor = (progress: number) => {
-    if (progress <= 25) return 'bg-red-500'
-    if (progress <= 70) return 'bg-yellow-500'
-    return 'bg-green-500'
-  }
+    if (progress <= 25) return "bg-red-500";
+    if (progress <= 70) return "bg-yellow-500";
+    return "bg-green-500";
+  };
 
   const getStats = () => {
-    const total = proyeks.length
-    const dalamProgress = proyeks.filter(p => p.status === 'Dalam Progress').length
-    const selesai = proyeks.filter(p => p.status === 'Selesai').length
-    const perencanaan = proyeks.filter(p => p.status === 'Perencanaan').length
-    const dibatalkan = proyeks.filter(p => p.status === 'Dibatalkan').length
-    
-    return { total, dalamProgress, selesai, perencanaan, dibatalkan }
-  }
+    const total = proyeks.length;
+    const dalamProgress = proyeks.filter(
+      (p) => p.status === "Dalam Progress"
+    ).length;
+    const selesai = proyeks.filter((p) => p.status === "Selesai").length;
+    const perencanaan = proyeks.filter(
+      (p) => p.status === "Perencanaan"
+    ).length;
+    const dibatalkan = proyeks.filter((p) => p.status === "Dibatalkan").length;
 
-  const stats = getStats()
+    return { total, dalamProgress, selesai, perencanaan, dibatalkan };
+  };
+
+  const stats = getStats();
+
+  // Image upload handling
+  const handleImageUpload = async (
+    file: File,
+    isUpdate: boolean = false,
+    oldImageUrl?: string | null
+  ) => {
+    try {
+      setUploading(true);
+
+      const formData = new FormData();
+      formData.append("image", file);
+
+      if (isUpdate && oldImageUrl) {
+        const oldFilename = oldImageUrl.split("/").pop();
+        if (oldFilename) {
+          formData.append("oldFilename", oldFilename);
+        }
+      }
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        setValue("gambar", result.url);
+      } else {
+        alert(result.error || "Gagal mengupload gambar");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Terjadi kesalahan saat upload gambar");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validasi client-side
+      if (!file.type.startsWith("image/")) {
+        alert("Harap pilih file gambar yang valid (PNG, JPG, JPEG)");
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Ukuran file maksimal 5MB");
+        return;
+      }
+
+      // Tentukan apakah ini update atau create baru
+      const isUpdate = !!editingProyek;
+      const oldImageUrl = editingProyek?.gambar;
+
+      handleImageUpload(file, isUpdate, oldImageUrl);
+    }
+  };
+
+  const removeImage = () => {
+    setValue("gambar", "");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <HeaderManajemenProyek
         action={
-          <Button 
+          <Button
             onClick={() => handleOpenModal()}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm px-4 py-2.5 rounded-lg font-medium transition-colors"
           >
@@ -364,7 +497,9 @@ export default function ManajemenProyekPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Total Proyek</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {stats.total}
+                </p>
               </div>
               <Home className="w-12 h-12 text-blue-600 opacity-20" />
             </div>
@@ -376,7 +511,9 @@ export default function ManajemenProyekPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Dalam Progress</p>
-                <p className="text-3xl font-bold text-yellow-600">{stats.dalamProgress}</p>
+                <p className="text-3xl font-bold text-yellow-600">
+                  {stats.dalamProgress}
+                </p>
               </div>
               <Clock className="w-12 h-12 text-yellow-600 opacity-20" />
             </div>
@@ -388,7 +525,9 @@ export default function ManajemenProyekPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Selesai</p>
-                <p className="text-3xl font-bold text-green-600">{stats.selesai}</p>
+                <p className="text-3xl font-bold text-green-600">
+                  {stats.selesai}
+                </p>
               </div>
               <CheckCircle className="w-12 h-12 text-green-600 opacity-20" />
             </div>
@@ -409,7 +548,7 @@ export default function ManajemenProyekPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
+
             <select
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors"
               value={statusFilter}
@@ -421,9 +560,17 @@ export default function ManajemenProyekPage() {
               <option value="Selesai">Selesai</option>
               <option value="Dibatalkan">Dibatalkan</option>
             </select>
-            
+
             <div className="text-sm text-gray-600 font-medium flex items-center">
-              Menampilkan <span className="mx-1 text-gray-900 font-bold">{filteredProyeks.length}</span> dari <span className="mx-1 text-gray-900 font-bold">{proyeks.length}</span> proyek
+              Menampilkan{" "}
+              <span className="mx-1 text-gray-900 font-bold">
+                {filteredProyeks.length}
+              </span>{" "}
+              dari{" "}
+              <span className="mx-1 text-gray-900 font-bold">
+                {proyeks.length}
+              </span>{" "}
+              proyek
             </div>
           </div>
         </div>
@@ -435,7 +582,9 @@ export default function ManajemenProyekPage() {
             <div className="flex justify-center">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
             </div>
-            <p className="mt-3 text-gray-600 font-medium">Memuat data proyek...</p>
+            <p className="mt-3 text-gray-600 font-medium">
+              Memuat data proyek...
+            </p>
           </CardContent>
         </Card>
       ) : filteredProyeks.length === 0 ? (
@@ -443,17 +592,17 @@ export default function ManajemenProyekPage() {
           <CardContent className="text-center py-16">
             <Home className="w-20 h-20 mx-auto mb-4 text-gray-300" />
             <h3 className="text-lg font-semibold text-gray-700 mb-2">
-              {searchTerm || statusFilter !== 'all'
-                ? 'Tidak ada proyek yang ditemukan'
-                : 'Belum ada proyek'}
+              {searchTerm || statusFilter !== "all"
+                ? "Tidak ada proyek yang ditemukan"
+                : "Belum ada proyek"}
             </h3>
             <p className="text-gray-500 mb-6 max-w-md mx-auto">
-              {searchTerm || statusFilter !== 'all'
-                ? 'Coba ubah filter pencarian atau kata kunci'
-                : 'Mulai dengan membuat proyek pertama Anda'}
+              {searchTerm || statusFilter !== "all"
+                ? "Coba ubah filter pencarian atau kata kunci"
+                : "Mulai dengan membuat proyek pertama Anda"}
             </p>
-            {!searchTerm && statusFilter === 'all' && (
-              <Button 
+            {!searchTerm && statusFilter === "all" && (
+              <Button
                 onClick={() => handleOpenModal()}
                 className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm px-6 py-2.5 rounded-lg font-medium transition-colors"
               >
@@ -466,24 +615,40 @@ export default function ManajemenProyekPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProyeks.map((proyek) => {
-            const mandorName = getMandorName(proyek.mandorId) || proyek.mandor
-            
+            const mandorName = getMandorName(proyek.mandorId) || proyek.mandor;
+
             return (
-              <Card 
-                key={proyek.id} 
+              <Card
+                key={proyek.id}
                 className="border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col h-full"
               >
                 <div className="relative flex-shrink-0">
-                  <div className="aspect-video bg-gradient-to-br from-blue-50 to-blue-100 rounded-t-xl overflow-hidden p-6 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Home className="w-8 h-8 text-blue-600" />
+                  <div className="aspect-video bg-gradient-to-br from-blue-50 to-blue-100 rounded-t-xl overflow-hidden p-0 flex items-center justify-center relative">
+                    {proyek.gambar ? (
+                      <Image
+                        src={proyek.gambar}
+                        alt={proyek.nama}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        onError={(e) => {
+                          // Fallback jika gambar error
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="text-center w-full h-full flex flex-col items-center justify-center p-6">
+                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Home className="w-8 h-8 text-blue-600" />
+                        </div>
+                        <p className="text-sm font-semibold text-blue-700">
+                          {proyek.tipeLayanan}
+                        </p>
                       </div>
-                      <p className="text-sm font-semibold text-blue-700">{proyek.tipeLayanan}</p>
-                    </div>
+                    )}
                   </div>
-                  <div className="absolute top-3 right-3">
-                    <Badge 
+                  <div className="absolute top-3 right-3 z-10">
+                    <Badge
                       className={cn(
                         "text-xs px-2.5 py-1 font-medium shadow-sm flex items-center gap-1",
                         getStatusColor(proyek.status)
@@ -502,13 +667,19 @@ export default function ManajemenProyekPage() {
 
                   <div className="mb-6">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-gray-700">Progress</span>
-                      <span className={cn(
-                        "text-sm font-bold",
-                        proyek.progress <= 25 ? "text-red-600" :
-                        proyek.progress <= 70 ? "text-yellow-600" :
-                        "text-green-600"
-                      )}>
+                      <span className="text-sm font-medium text-gray-700">
+                        Progress
+                      </span>
+                      <span
+                        className={cn(
+                          "text-sm font-bold",
+                          proyek.progress <= 25
+                            ? "text-red-600"
+                            : proyek.progress <= 70
+                            ? "text-yellow-600"
+                            : "text-green-600"
+                        )}
+                      >
                         {proyek.progress}%
                       </span>
                     </div>
@@ -528,10 +699,12 @@ export default function ManajemenProyekPage() {
                       <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-gray-500 mb-0.5">Klien</p>
-                        <p className="font-medium text-gray-900 truncate">{proyek.pelanggan}</p>
+                        <p className="font-medium text-gray-900 truncate">
+                          {proyek.pelanggan}
+                        </p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-3">
                       <Users className="w-4 h-4 text-gray-400 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -541,16 +714,20 @@ export default function ManajemenProyekPage() {
                             {mandorName}
                           </p>
                         ) : (
-                          <p className="text-gray-400 text-sm">Belum ditugaskan</p>
+                          <p className="text-gray-400 text-sm">
+                            Belum ditugaskan
+                          </p>
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="flex items-start gap-3">
                       <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-gray-500 mb-0.5">Alamat</p>
-                        <p className="text-sm text-gray-900 line-clamp-2">{proyek.alamat}</p>
+                        <p className="text-sm text-gray-900 line-clamp-2">
+                          {proyek.alamat}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -573,11 +750,13 @@ export default function ManajemenProyekPage() {
                       {proyek.telpon && (
                         <div className="flex items-center gap-2 mt-1">
                           <Phone className="w-4 h-4 text-gray-400" />
-                          <span className="text-xs text-gray-600">{proyek.telpon}</span>
+                          <span className="text-xs text-gray-600">
+                            {proyek.telpon}
+                          </span>
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="flex items-center gap-1 ml-3 flex-shrink-0">
                       <Button
                         variant="ghost"
@@ -599,7 +778,7 @@ export default function ManajemenProyekPage() {
                   </div>
                 </CardContent>
               </Card>
-            )
+            );
           })}
         </div>
       )}
@@ -608,7 +787,7 @@ export default function ManajemenProyekPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title={editingProyek ? 'Edit Proyek' : 'Buat Proyek Baru'}
+        title={editingProyek ? "Edit Proyek" : "Buat Proyek Baru"}
         size="lg"
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -617,46 +796,127 @@ export default function ManajemenProyekPage() {
               <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
                 <Briefcase className="w-4 h-4" /> Informasi Dasar
               </h4>
-              
+
+              {/* Image Upload Section */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Foto Proyek
+                </label>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  accept="image/*"
+                  className="hidden"
+                  disabled={isSubmitting || uploading}
+                />
+
+                {imagePreview ? (
+                  <div className="space-y-3">
+                    <div className="relative w-full h-48 rounded-lg border border-gray-300 overflow-hidden">
+                      <Image
+                        src={imagePreview}
+                        alt="Preview"
+                        fill
+                        className="object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={removeImage}
+                        className="absolute top-2 right-2 h-8 w-8 p-0 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-sm"
+                        disabled={isSubmitting || uploading}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      Gambar berhasil diupload
+                    </p>
+                  </div>
+                ) : (
+                  <div
+                    onClick={triggerFileInput}
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors bg-gray-50"
+                  >
+                    {uploading ? (
+                      <div className="flex flex-col items-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+                        <p className="text-gray-600 font-medium">
+                          Mengupload...
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-600 font-medium">
+                          Klik untuk upload gambar
+                        </p>
+                        <p className="text-gray-500 text-sm mt-1">
+                          PNG, JPG, JPEG (max. 5MB)
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
+                {errors.gambar?.message && (
+                  <p className="text-red-600 text-sm mt-1">
+                    {errors.gambar.message}
+                  </p>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Nama Proyek</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Nama Proyek
+                  </label>
                   <Input
                     placeholder="Contoh: Renovasi Rumah Pak Budi"
                     error={errors.nama?.message}
-                    {...register('nama')}
-                    className="bg-white"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Tipe Layanan</label>
-                  <Select
-                    options={TIPE_LAYANAN.map((t) => ({ value: t, label: t }))}
-                    error={errors.tipeLayanan?.message}
-                    {...register('tipeLayanan')}
+                    {...register("nama")}
                     className="bg-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Status Proyek</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Tipe Layanan
+                  </label>
                   <Select
-                    options={Object.values(PROJECT_STATUS).map((s) => ({ value: s, label: s }))}
+                    options={TIPE_LAYANAN.map((t) => ({ value: t, label: t }))}
+                    error={errors.tipeLayanan?.message}
+                    {...register("tipeLayanan")}
+                    className="bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Status Proyek
+                  </label>
+                  <Select
+                    options={Object.values(PROJECT_STATUS).map((s) => ({
+                      value: s,
+                      label: s,
+                    }))}
                     error={errors.status?.message}
-                    {...register('status')}
+                    {...register("status")}
                     className="bg-white"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Deskripsi</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Deskripsi
+                </label>
                 <Textarea
                   placeholder="Jelaskan detail pekerjaan proyek ini..."
                   rows={3}
                   error={errors.deskripsi?.message}
-                  {...register('deskripsi')}
+                  {...register("deskripsi")}
                   className="bg-white resize-none"
                 />
               </div>
@@ -669,57 +929,76 @@ export default function ManajemenProyekPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Pelanggan</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Pelanggan
+                  </label>
                   <Select
-                    options={[{ value: '', label: 'Pilih Pelanggan' }, ...pelangganOptions]}
+                    options={[
+                      { value: "", label: "Pilih Pelanggan" },
+                      ...pelangganOptions.filter((o) => o.value !== ""),
+                    ]}
                     error={errors.pelangganId?.message}
-                    {...register('pelangganId')}
+                    {...register("pelangganId")}
                     className="bg-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Mandor (Opsional)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Mandor (Opsional)
+                  </label>
                   <Select
-                    options={[{ value: '', label: 'Pilih Mandor' }, ...mandorOptions]}
+                    options={[
+                      { value: "", label: "Pilih Mandor" },
+                      ...mandorOptions.filter((o) => o.value !== ""),
+                    ]}
                     error={errors.mandorId?.message}
-                    {...register('mandorId')}
+                    {...register("mandorId")}
                     className="bg-white"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Alamat Lokasi</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Alamat Lokasi
+                </label>
                 <Input
                   placeholder="Alamat lengkap lokasi proyek"
                   error={errors.alamat?.message}
-                  {...register('alamat')}
+                  {...register("alamat")}
                   className="bg-white"
                 />
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Nomor Telepon (Kontak)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Nomor Telepon (Kontak)
+                  </label>
                   <Input
                     type="tel"
                     placeholder="08xxxxxxxxxx"
                     error={errors.telpon?.message}
-                    {...register('telpon')}
+                    {...register("telpon")}
                     className="bg-white"
                     onInput={(e) => {
-                      e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, '')
+                      e.currentTarget.value = e.currentTarget.value.replace(
+                        /[^0-9]/g,
+                        ""
+                      );
                     }}
                   />
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Tanggal Mulai</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Tanggal Mulai
+                  </label>
                   <Input
                     type="date"
                     error={errors.mulai?.message}
-                    {...register('mulai')}
+                    {...register("mulai")}
                     className="bg-white"
                   />
                 </div>
@@ -728,20 +1007,24 @@ export default function ManajemenProyekPage() {
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={handleCloseModal}
               className="px-6 border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               Batal
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={isSubmitting}
               className="px-6 bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center gap-2"
             >
-              {isSubmitting ? 'Menyimpan...' : (editingProyek ? 'Simpan Perubahan' : 'Buat Proyek')}
+              {isSubmitting
+                ? "Menyimpan..."
+                : editingProyek
+                ? "Simpan Perubahan"
+                : "Buat Proyek"}
             </Button>
           </div>
         </form>
@@ -754,20 +1037,20 @@ export default function ManajemenProyekPage() {
       >
         <div className="space-y-4">
           <p className="text-gray-700">
-            Apakah Anda yakin ingin menghapus proyek{' '}
-            <strong className="text-red-600">{deletingProyek?.nama}</strong>? 
+            Apakah Anda yakin ingin menghapus proyek{" "}
+            <strong className="text-red-600">{deletingProyek?.nama}</strong>?
             Tindakan ini tidak dapat dibatalkan.
           </p>
           <div className="flex justify-end gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsDeleteModalOpen(false)}
               className="border-gray-300"
             >
               Batal
             </Button>
-            <Button 
-              variant="danger" 
+            <Button
+              variant="danger"
               onClick={confirmDelete}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
@@ -781,11 +1064,11 @@ export default function ManajemenProyekPage() {
         isOpen={notificationModal.isOpen}
         onClose={closeNotification}
         size="md"
-        showCloseButton={notificationModal.type === 'success'}
+        showCloseButton={notificationModal.type === "success"}
       >
         <div className="text-center py-6 px-4">
           <div className="flex flex-col items-center gap-4">
-            {notificationModal.type === 'success' ? (
+            {notificationModal.type === "success" ? (
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
                 <CheckCircle2 className="w-8 h-8 text-green-600" />
               </div>
@@ -794,31 +1077,33 @@ export default function ManajemenProyekPage() {
                 <XCircle className="w-8 h-8 text-red-600" />
               </div>
             )}
-            
+
             <div>
-              <h3 className={`text-lg font-semibold mb-2 ${
-                notificationModal.type === 'success' ? 'text-green-900' : 'text-red-900'
-              }`}>
+              <h3
+                className={`text-lg font-semibold mb-2 ${
+                  notificationModal.type === "success"
+                    ? "text-green-900"
+                    : "text-red-900"
+                }`}
+              >
                 {notificationModal.title}
               </h3>
-              <p className="text-gray-600">
-                {notificationModal.message}
-              </p>
+              <p className="text-gray-600">{notificationModal.message}</p>
             </div>
-            
+
             <Button
               onClick={closeNotification}
               className={`mt-4 ${
-                notificationModal.type === 'success' 
-                  ? 'bg-green-600 hover:bg-green-700 text-white'
-                  : 'bg-red-600 hover:bg-red-700 text-white'
+                notificationModal.type === "success"
+                  ? "bg-green-600 hover:bg-green-700 text-white"
+                  : "bg-red-600 hover:bg-red-700 text-white"
               }`}
             >
-              {notificationModal.type === 'success' ? 'OK' : 'Tutup'}
+              {notificationModal.type === "success" ? "OK" : "Tutup"}
             </Button>
           </div>
         </div>
       </Modal>
     </div>
-  )
+  );
 }

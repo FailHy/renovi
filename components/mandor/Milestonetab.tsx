@@ -1,136 +1,179 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { 
-  Plus, 
-  Pencil, 
-  Trash2, 
-  Calendar, 
-  CheckCircle, 
-  Clock, 
+import { useState, useEffect } from "react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Calendar,
+  CheckCircle,
+  Clock,
   XCircle,
   Loader2,
-  AlertCircle
-} from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { Card, CardContent } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
-import { formatDate } from '@/lib/utils/mandorUtils'
-import { toast } from 'react-hot-toast'
-import type { Milestone } from './type'
+  AlertCircle,
+} from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { formatDate } from "@/lib/utils/mandorUtils";
+import { toast } from "react-hot-toast";
+import type { Milestone } from "./type";
 
 interface MilestoneTabProps {
   milestones: Milestone[];
   proyekId: string;
-  onRefresh?: () => void
+  onRefresh?: () => void;
   onAddMilestone: () => void;
   onEditMilestone: (milestone?: Milestone) => void;
   onDeleteMilestone: (milestone: Milestone) => void;
-  onUpdateStatus: (milestoneId: string, status: "Belum Dimulai" | "Dalam Progress" | "Selesai") => Promise<void>;
+  onUpdateStatus: (
+    milestoneId: string,
+    status: "Belum Dimulai" | "Dalam Progress" | "Selesai"
+  ) => Promise<void>;
 }
 
-export function MilestoneTab({ 
-  milestones: initialMilestones, 
-  proyekId,
-  onAddMilestone, 
-  onEditMilestone, 
+export function MilestoneTab({
+  milestones: initialMilestones,
+  // proyekId,
+  onAddMilestone,
+  onEditMilestone,
   onDeleteMilestone,
-  onRefresh
+  onRefresh,
 }: MilestoneTabProps) {
-  const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones)
-  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
-  
+  const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones);
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+
   // Sync with initialMilestones when they change
   useEffect(() => {
-    setMilestones(initialMilestones)
-  }, [initialMilestones])
+    setMilestones(initialMilestones);
+  }, [initialMilestones]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Selesai': return <CheckCircle className="w-4 h-4 text-emerald-600" />
-      case 'Dalam Progress': return <Clock className="w-4 h-4 text-amber-600" />
-      case 'Belum Dimulai': return <Clock className="w-4 h-4 text-slate-400" />
-      case 'Dibatalkan': return <XCircle className="w-4 h-4 text-rose-600" />
-      default: return <Clock className="w-4 h-4 text-slate-400" />
+      case "Selesai":
+        return <CheckCircle className="w-4 h-4 text-emerald-600" />;
+      case "Dalam Progress":
+        return <Clock className="w-4 h-4 text-amber-600" />;
+      case "Belum Dimulai":
+        return <Clock className="w-4 h-4 text-slate-400" />;
+      case "Dibatalkan":
+        return <XCircle className="w-4 h-4 text-rose-600" />;
+      default:
+        return <Clock className="w-4 h-4 text-slate-400" />;
     }
-  }
+  };
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      'Belum Dimulai': 'bg-slate-100 text-slate-700 border border-slate-200',
-      'Dalam Progress': 'bg-amber-100 text-amber-700 border border-amber-200',
-      'Selesai': 'bg-emerald-100 text-emerald-700 border border-emerald-200',
-      'Dibatalkan': 'bg-rose-100 text-rose-700 border border-rose-200',
-    }
-    return colors[status] || 'bg-slate-100 text-slate-700 border border-slate-200'
-  }
+      "Belum Dimulai": "bg-slate-100 text-slate-700 border border-slate-200",
+      "Dalam Progress": "bg-amber-100 text-amber-700 border border-amber-200",
+      Selesai: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+      Dibatalkan: "bg-rose-100 text-rose-700 border border-rose-200",
+    };
+    return (
+      colors[status] || "bg-slate-100 text-slate-700 border border-slate-200"
+    );
+  };
 
   const statusOptions = [
-    { value: 'Belum Dimulai', label: 'Belum Dimulai', icon: '⏳', color: 'slate' },
-    { value: 'Dalam Progress', label: 'Dalam Progress', icon: '🚧', color: 'amber' },
-    { value: 'Selesai', label: 'Selesai', icon: '  ', color: 'emerald' },
-    { value: 'Dibatalkan', label: 'Dibatalkan', icon: '❌', color: 'rose' }
-  ]
+    {
+      value: "Belum Dimulai",
+      label: "Belum Dimulai",
+      icon: "⏳",
+      color: "slate",
+    },
+    {
+      value: "Dalam Progress",
+      label: "Dalam Progress",
+      icon: "🚧",
+      color: "amber",
+    },
+    { value: "Selesai", label: "Selesai", icon: "  ", color: "emerald" },
+    { value: "Dibatalkan", label: "Dibatalkan", icon: "❌", color: "rose" },
+  ];
 
   // Update status dengan sync langsung ke UI
-  const handleQuickUpdateStatus = async (milestoneId: string, newStatus: string) => {
-    const originalMilestones = [...milestones]
-    const originalStatus = milestones.find(m => m.id === milestoneId)?.status
-    
+  const handleQuickUpdateStatus = async (
+    milestoneId: string,
+    newStatus: string
+  ) => {
+    const originalMilestones = [...milestones];
+    // const originalStatus = milestones.find(m => m.id === milestoneId)?.status
+
     // Langsung update UI
-    setMilestones(prev => prev.map(m => 
-      m.id === milestoneId 
-        ? { 
-            ...m, 
-            status: newStatus as "Belum Dimulai" | "Dalam Progress" | "Selesai" | "Dibatalkan",
-            ...(newStatus === 'Selesai' && { selesai: new Date() }),
-            ...(newStatus === 'Dalam Progress' && !m.mulai && { mulai: new Date() })
-          }
-        :  m
-    ))
-    
-    setUpdatingStatus(milestoneId)
+    setMilestones((prev) =>
+      prev.map((m) =>
+        m.id === milestoneId
+          ? {
+              ...m,
+              status: newStatus as
+                | "Belum Dimulai"
+                | "Dalam Progress"
+                | "Selesai"
+                | "Dibatalkan",
+              ...(newStatus === "Selesai" && { selesai: new Date() }),
+              ...(newStatus === "Dalam Progress" &&
+                !m.mulai && { mulai: new Date() }),
+            }
+          : m
+      )
+    );
+
+    setUpdatingStatus(milestoneId);
 
     try {
       // Import dengan dynamic import
-      const { updateMilestoneStatus } = await import('@/lib/actions/mandor/milestone')
-      const result = await updateMilestoneStatus(milestoneId, newStatus as any)
-      
+      const { updateMilestoneStatus } = (await import(
+        "@/lib/actions/mandor/milestone"
+      )) as {
+        updateMilestoneStatus: (
+          id: string,
+          status: "Belum Dimulai" | "Dalam Progress" | "Selesai" | "Dibatalkan"
+        ) => Promise<{ success: boolean; error?: string }>;
+      };
+      const result = await updateMilestoneStatus(
+        milestoneId,
+        newStatus as
+          | "Belum Dimulai"
+          | "Dalam Progress"
+          | "Selesai"
+          | "Dibatalkan"
+      );
+
       if (result.success) {
-        toast.success(`✓ Status berhasil diubah menjadi "${newStatus}"`)
-        
+        toast.success(`✓ Status berhasil diubah menjadi "${newStatus}"`);
+
         // Refresh data dari server untuk sinkronisasi
         if (onRefresh) {
           setTimeout(() => {
-            onRefresh()
-          }, 500)
+            onRefresh();
+          }, 500);
         }
-        
       } else {
-        toast.error(result.error || 'Gagal mengupdate status')
+        toast.error(result.error || "Gagal mengupdate status");
         // Rollback jika gagal
-        setMilestones(originalMilestones)
+        setMilestones(originalMilestones);
       }
     } catch (error) {
-      console.error('Error updating milestone status:', error)
-      toast.error('Terjadi kesalahan saat mengupdate status')
+      console.error("Error updating milestone status:", error);
+      toast.error("Terjadi kesalahan saat mengupdate status");
       // Rollback jika error
-      setMilestones(originalMilestones)
+      setMilestones(originalMilestones);
     } finally {
-      setUpdatingStatus(null)
+      setUpdatingStatus(null);
     }
-  }
+  };
 
   // Calculate progress statistics
   const calculateProgress = () => {
-    const total = milestones.length
-    const selesai = milestones.filter(m => m.status === 'Selesai').length
-    const progress = total > 0 ? Math.round((selesai / total) * 100) : 0
-    
-    return { total, selesai, progress }
-  }
+    const total = milestones.length;
+    const selesai = milestones.filter((m) => m.status === "Selesai").length;
+    const progress = total > 0 ? Math.round((selesai / total) * 100) : 0;
 
-  const progressStats = calculateProgress()
+    return { total, selesai, progress };
+  };
+
+  const progressStats = calculateProgress();
 
   return (
     <div className="space-y-6">
@@ -138,12 +181,14 @@ export function MilestoneTab({
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 md:p-6 border border-blue-100">
         <div className="space-y-4">
           <div>
-            <h3 className="text-lg md:text-xl font-bold text-slate-900">Milestone Proyek</h3>
+            <h3 className="text-lg md:text-xl font-bold text-slate-900">
+              Milestone Proyek
+            </h3>
             <p className="text-slate-600 mt-1 text-sm">
               Kelola tahapan pengerjaan proyek
             </p>
           </div>
-          
+
           {/* Progress Stats */}
           <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-slate-200">
             <div className="flex items-center justify-center gap-6">
@@ -151,19 +196,23 @@ export function MilestoneTab({
                 <div className="text-2xl font-bold text-slate-900">
                   {progressStats.progress}%
                 </div>
-                <div className="text-xs text-slate-500 font-medium">Progress</div>
+                <div className="text-xs text-slate-500 font-medium">
+                  Progress
+                </div>
               </div>
               <div className="h-10 w-px bg-slate-200"></div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-slate-900">
                   {progressStats.selesai}/{progressStats.total}
                 </div>
-                <div className="text-xs text-slate-500 font-medium">Selesai</div>
+                <div className="text-xs text-slate-500 font-medium">
+                  Selesai
+                </div>
               </div>
             </div>
           </div>
-          
-          <Button 
+
+          <Button
             onClick={onAddMilestone}
             className="w-full bg-blue-600 hover:bg-blue-700 shadow-md flex items-center justify-center gap-2 font-semibold"
           >
@@ -176,20 +225,26 @@ export function MilestoneTab({
       {/* Status Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {statusOptions.map((status) => {
-          const count = milestones.filter(m => m.status === status.value).length
+          const count = milestones.filter(
+            (m) => m.status === status.value
+          ).length;
           return (
             <Card key={status.value} className="bg-white border-0 shadow-sm">
               <CardContent className="p-3 md:p-4">
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-slate-600">{status.label}</p>
+                    <p className="text-xs font-semibold text-slate-600">
+                      {status.label}
+                    </p>
                     <span className="text-2xl">{status.icon}</span>
                   </div>
-                  <p className="text-xl md:text-2xl font-bold text-slate-900">{count}</p>
+                  <p className="text-xl md:text-2xl font-bold text-slate-900">
+                    {count}
+                  </p>
                 </div>
               </CardContent>
             </Card>
-          )
+          );
         })}
       </div>
 
@@ -207,8 +262,8 @@ export function MilestoneTab({
               <p className="text-slate-600 mb-6 max-w-sm mx-auto">
                 Tambahkan milestone pertama untuk melacak progress proyek Anda.
               </p>
-              <Button 
-                onClick={onAddMilestone} 
+              <Button
+                onClick={onAddMilestone}
                 className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2 font-semibold shadow-lg shadow-blue-500/30"
               >
                 <Plus className="w-4 h-4" />
@@ -218,11 +273,11 @@ export function MilestoneTab({
           </Card>
         ) : (
           milestones.map((milestone) => {
-            const isUpdating = updatingStatus === milestone.id
-            
+            const isUpdating = updatingStatus === milestone.id;
+
             return (
-              <Card 
-                key={milestone.id} 
+              <Card
+                key={milestone.id}
                 className="bg-white border-0 shadow-md hover:shadow-lg transition-all duration-200"
               >
                 <CardContent className="p-4 md:p-6">
@@ -260,58 +315,80 @@ export function MilestoneTab({
                       </label>
                       <div className="grid grid-cols-2 gap-2">
                         {statusOptions.map((option) => {
-                          const isActive = milestone.status === option.value
-                          const bgColor = {
-                            slate: 'bg-slate-100 border-slate-300',
-                            amber: 'bg-amber-100 border-amber-300',
-                            emerald: 'bg-emerald-100 border-emerald-300',
-                            rose: 'bg-rose-100 border-rose-300'
-                          }[option.color] || 'bg-slate-100'
-                          
-                          const textColor = {
-                            slate: 'text-slate-700',
-                            amber: 'text-amber-700',
-                            emerald: 'text-emerald-700', 
-                            rose: 'text-rose-700'
-                          }[option.color] || 'text-slate-700'
-                          
-                          const borderColor = {
-                            slate: 'border-slate-500',
-                            amber: 'border-amber-500',
-                            emerald: 'border-emerald-500',
-                            rose: 'border-rose-500'
-                          }[option.color] || 'border-slate-500'
+                          const isActive = milestone.status === option.value;
+                          const bgColor =
+                            {
+                              slate: "bg-slate-100 border-slate-300",
+                              amber: "bg-amber-100 border-amber-300",
+                              emerald: "bg-emerald-100 border-emerald-300",
+                              rose: "bg-rose-100 border-rose-300",
+                            }[option.color] || "bg-slate-100";
+
+                          const textColor =
+                            {
+                              slate: "text-slate-700",
+                              amber: "text-amber-700",
+                              emerald: "text-emerald-700",
+                              rose: "text-rose-700",
+                            }[option.color] || "text-slate-700";
+
+                          const borderColor =
+                            {
+                              slate: "border-slate-500",
+                              amber: "border-amber-500",
+                              emerald: "border-emerald-500",
+                              rose: "border-rose-500",
+                            }[option.color] || "border-slate-500";
 
                           return (
                             <button
                               key={option.value}
-                              onClick={() => handleQuickUpdateStatus(milestone.id, option.value)}
+                              onClick={() =>
+                                handleQuickUpdateStatus(
+                                  milestone.id,
+                                  option.value
+                                )
+                              }
                               disabled={isUpdating}
                               className={`
                                 relative p-2 md:p-3 rounded-lg border-2 font-semibold text-xs transition-all duration-200
-                                ${isActive 
-                                  ? `${bgColor} ${borderColor} ${textColor} shadow-sm` 
-                                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                                ${
+                                  isActive
+                                    ? `${bgColor} ${borderColor} ${textColor} shadow-sm`
+                                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                                 }
-                                ${isUpdating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                                ${
+                                  isUpdating
+                                    ? "opacity-50 cursor-not-allowed"
+                                    : "cursor-pointer"
+                                }
                               `}
                             >
                               <div className="flex flex-col items-center gap-1">
-                                <span className="text-lg md:text-xl">{option.icon}</span>
-                                <span className="text-xs leading-tight text-center">{option.label}</span>
+                                <span className="text-lg md:text-xl">
+                                  {option.icon}
+                                </span>
+                                <span className="text-xs leading-tight text-center">
+                                  {option.label}
+                                </span>
                               </div>
                               {isActive && (
-                                <div className={`absolute -top-1 -right-1 w-4 h-4 md:w-5 md:h-5 ${
-                                  option.color === 'slate' ? 'bg-slate-500' :
-                                  option.color === 'amber' ? 'bg-amber-500' :
-                                  option.color === 'emerald' ? 'bg-emerald-500' :
-                                  'bg-rose-500'
-                                } rounded-full flex items-center justify-center`}>
+                                <div
+                                  className={`absolute -top-1 -right-1 w-4 h-4 md:w-5 md:h-5 ${
+                                    option.color === "slate"
+                                      ? "bg-slate-500"
+                                      : option.color === "amber"
+                                      ? "bg-amber-500"
+                                      : option.color === "emerald"
+                                      ? "bg-emerald-500"
+                                      : "bg-rose-500"
+                                  } rounded-full flex items-center justify-center`}
+                                >
                                   <CheckCircle className="w-2.5 h-2.5 md:w-3 md:h-3 text-white" />
                                 </div>
                               )}
                             </button>
-                          )
+                          );
                         })}
                       </div>
                     </div>
@@ -323,34 +400,40 @@ export function MilestoneTab({
                           <Calendar className="w-4 h-4 text-blue-600" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span className="text-xs font-semibold text-slate-600 block mb-1">Target</span>
+                          <span className="text-xs font-semibold text-slate-600 block mb-1">
+                            Target
+                          </span>
                           <p className="font-semibold text-slate-900 text-sm">
                             {formatDate(milestone.tanggal)}
                           </p>
                         </div>
                       </div>
-                      
+
                       {milestone.mulai && (
                         <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
                           <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
                             <Calendar className="w-4 h-4 text-emerald-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <span className="text-xs font-semibold text-slate-600 block mb-1">Mulai</span>
+                            <span className="text-xs font-semibold text-slate-600 block mb-1">
+                              Mulai
+                            </span>
                             <p className="font-semibold text-slate-900 text-sm">
                               {formatDate(milestone.mulai)}
                             </p>
                           </div>
                         </div>
                       )}
-                      
+
                       {milestone.selesai && (
                         <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
                           <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
                             <Calendar className="w-4 h-4 text-purple-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <span className="text-xs font-semibold text-slate-600 block mb-1">Selesai</span>
+                            <span className="text-xs font-semibold text-slate-600 block mb-1">
+                              Selesai
+                            </span>
                             <p className="font-semibold text-slate-900 text-sm">
                               {formatDate(milestone.selesai)}
                             </p>
@@ -383,7 +466,7 @@ export function MilestoneTab({
                   </div>
                 </CardContent>
               </Card>
-            )
+            );
           })
         )}
       </div>
@@ -399,8 +482,14 @@ export function MilestoneTab({
               Tips Menggunakan Milestone
             </h4>
             <ul className="text-sm text-slate-700 space-y-1">
-              <li>• Klik tombol status untuk update cepat - perubahan langsung terlihat</li>
-              <li>• Progress proyek otomatis terhitung realtime dari milestone yang selesai</li>
+              <li>
+                • Klik tombol status untuk update cepat - perubahan langsung
+                terlihat
+              </li>
+              <li>
+                • Progress proyek otomatis terhitung realtime dari milestone
+                yang selesai
+              </li>
               <li>• Status akan otomatis tersimpan ke database</li>
               <li>• Setelah edit nama, halaman akan otomatis refresh</li>
             </ul>
@@ -408,5 +497,5 @@ export function MilestoneTab({
         </div>
       </div>
     </div>
-  )
+  );
 }

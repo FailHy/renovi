@@ -1,36 +1,51 @@
 // FILE: app/(dashboard)/mandor/proyek/[id]/bahan/BahanDashboard.tsx
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/Card';
-import { Package, DollarSign, List } from 'lucide-react';
+import { Card, CardContent } from "@/components/ui/Card";
+import { Package, DollarSign, List } from "lucide-react";
 
-interface BahanDashboardProps {
-  proyek: any;
-  bahanList: any[];
-  milestones: any[];
-  mandorId: string;
+interface Proyek {
+  id: string;
+  nama: string;
 }
 
-export default function BahanDashboard({ 
-  proyek, 
+interface BahanItem {
+  id: string;
+  nama?: string;
+  harga: number | string;
+  kuantitas: number | string;
+  status?: string;
+}
+
+interface Milestone {
+  id: string;
+  nama: string;
+}
+
+interface BahanDashboardProps {
+  proyek: Proyek;
+  bahanList: BahanItem[];
+  milestones: Milestone[];
+  mandorId: string;
+}
+export default function BahanDashboard({
+  proyek,
   bahanList = [], // Default value untuk array
-  milestones = [], 
-  mandorId // Tambahkan ini
 }: BahanDashboardProps) {
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  // const [filterStatus, setFilterStatus] = useState<string>('all');
 
   // Safety check untuk bahanList
   const safeBahanList = Array.isArray(bahanList) ? bahanList : [];
 
   // Calculate statistics
-  const totalCost = safeBahanList.reduce((sum, item) => 
-    sum + (Number(item.harga) * Number(item.kuantitas)), 0
+  const totalCost = safeBahanList.reduce(
+    (sum, item) => sum + Number(item.harga) * Number(item.kuantitas),
+    0
   );
-  
+
   // Definisikan tipe untuk accumulator
   const bahanByStatus = safeBahanList.reduce((acc, item) => {
-    const status = item.status || 'Unknown';
+    const status = item.status || "Unknown";
     acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>); // Tambahkan tipe Record
@@ -41,7 +56,7 @@ export default function BahanDashboard({
       <div>
         <h1 className="text-2xl font-bold">Bahan Harian</h1>
         {/* Gunakan optional chaining (?.) untuk mencegah error jika proyek null */}
-        <p className="text-gray-600">Proyek: {proyek?.nama || 'Loading...'}</p>
+        <p className="text-gray-600">Proyek: {proyek?.nama || "Loading..."}</p>
       </div>
 
       {/* Stats */}
@@ -54,7 +69,9 @@ export default function BahanDashboard({
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total Bahan</p>
-                <p className="text-2xl font-bold">{safeBahanList.length} item</p>
+                <p className="text-2xl font-bold">
+                  {safeBahanList.length} item
+                </p>
               </div>
             </div>
           </CardContent>
@@ -69,7 +86,7 @@ export default function BahanDashboard({
               <div>
                 <p className="text-sm text-gray-600">Total Biaya</p>
                 <p className="text-2xl font-bold">
-                  Rp {totalCost.toLocaleString('id-ID')}
+                  Rp {totalCost.toLocaleString("id-ID")}
                 </p>
               </div>
             </div>
@@ -86,7 +103,10 @@ export default function BahanDashboard({
                 <p className="text-sm text-gray-600">Status Bahan</p>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {Object.entries(bahanByStatus).map(([status, count]) => (
-                    <span key={status} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                    <span
+                      key={status}
+                      className="text-xs bg-gray-100 px-2 py-1 rounded"
+                    >
                       {status}: {count as number}
                     </span>
                   ))}
