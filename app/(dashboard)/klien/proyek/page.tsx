@@ -1,30 +1,295 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { db } from '@/lib/db'
-import { projeks } from '@/lib/db/schema'
-import { eq, desc } from 'drizzle-orm'
-import { Card, CardContent } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
-import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import { 
-  Building2, 
-  MapPin, 
-  User, 
-  CheckCircle2, 
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { projeks } from "@/lib/db/schema";
+import { eq, desc } from "drizzle-orm";
+import { Card, CardContent } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import Link from "next/link";
+import Image from "next/image";
+import { redirect } from "next/navigation";
+import {
+  Building2,
+  CheckCircle2,
   Activity,
   CalendarDays,
-  LayoutGrid
-} from 'lucide-react'
+  LayoutGrid,
+  ImageIcon,
+  MapPin,
+  User,
+} from "lucide-react";
+
+// ============================================
+// HELPER FUNCTIONS - Clean Code Best Practice
+// ============================================
+
+/**
+ * Get status badge color based on project status
+ */
+function getStatusColor(status: string): string {
+  const statusColors: Record<string, string> = {
+    "Dalam Progress": "bg-blue-100 text-blue-700 border-blue-200",
+    Selesai: "bg-green-100 text-green-700 border-green-200",
+    Perencanaan: "bg-yellow-100 text-yellow-700 border-yellow-200",
+    Dibatalkan: "bg-red-100 text-red-700 border-red-200",
+  };
+  return statusColors[status] || "bg-gray-100 text-gray-700 border-gray-200";
+}
+
+/**
+ * Get progress bar color based on percentage
+ */
+function getProgressColor(progress: number): string {
+  if (progress >= 80) return "bg-gradient-to-r from-emerald-500 to-emerald-400";
+  if (progress >= 50) return "bg-gradient-to-r from-blue-500 to-blue-400";
+  if (progress >= 30) return "bg-gradient-to-r from-amber-500 to-amber-400";
+  return "bg-gradient-to-r from-rose-500 to-rose-400";
+}
+
+/**
+ * Format date to Indonesian locale
+ */
+function formatDate(date: Date): string {
+  return new Date(date).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+// ============================================
+// TYPES
+// ============================================
+
+interface ProjectWithMandor {
+  id: string;
+  nama: string;
+  tipeLayanan: string;
+  deskripsi: string;
+  alamat: string;
+  status: string;
+  progress: number;
+  gambar: string[] | null;
+  lastUpdate: Date;
+  mandor: {
+    id: string;
+    nama: string;
+    telpon: string | null;
+  } | null;
+}
+
+// ============================================
+// COMPONENTS
+// ============================================
+
+/**
+ * Project Image Component - Reusable image display with fallback
+ */
+function ProjectImage({
+  gambar,
+  nama,
+  tipeLayanan,
+}: {
+  gambar: string[] | null;
+  nama: string;
+  tipeLayanan: string;
+}) {
+  if (gambar && gambar.length > 0) {
+    return (
+      <Image
+        src={gambar[0]}
+        alt={nama}
+        fill
+        className="object-cover group-hover:scale-105 transition-transform duration-300"
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+      />
+    );
+  }
+
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+      <ImageIcon className="w-12 h-12 text-slate-300 mb-2" />
+      <span className="text-xs text-slate-400 font-medium">{tipeLayanan}</span>
+    </div>
+  );
+}
+
+/**
+ * Project Card Component - Displays individual project information
+ */
+function ProjectCard({ project }: { project: ProjectWithMandor }) {
+  return (
+    <Link href={`/klien/proyek/${project.id}`}>
+      <Card
+        hover
+        className="group h-full border-0 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden"
+      >
+        {/* Project Image Section */}
+        <div className="relative w-full h-44 bg-slate-100">
+          <ProjectImage
+            gambar={project.gambar}
+            nama={project.nama}
+            tipeLayanan={project.tipeLayanan}
+          />
+
+          {/* Status Badge Overlay */}
+          <div className="absolute top-3 right-3 z-10">
+            <Badge
+              className={`px-3 py-1 shadow-md ${getStatusColor(
+                project.status
+              )}`}
+            >
+              {project.status}
+            </Badge>
+          </div>
+
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        </div>
+
+        <CardContent className="p-5">
+          {/* Header */}
+          <div className="mb-3">
+            <h3 className="font-bold text-lg text-gray-900 mb-1 line-clamp-1 group-hover:text-blue-600 transition-colors">
+              {project.nama}
+            </h3>
+            <p className="text-xs text-gray-500 font-medium">
+              {project.tipeLayanan}
+            </p>
+          </div>
+
+          {/* Description */}
+          <p className="text-sm text-gray-600 mb-4 line-clamp-2 leading-relaxed">
+            {project.deskripsi}
+          </p>
+
+          {/* Info Grid - Mandor & Location */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-gray-50">
+              <User className="w-4 h-4 text-blue-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[10px] text-gray-400 uppercase font-semibold">
+                  Mandor
+                </p>
+                <p className="text-xs font-bold text-gray-800 truncate">
+                  {project.mandor?.nama || "Belum ada"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-gray-50">
+              <MapPin className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[10px] text-gray-400 uppercase font-semibold">
+                  Lokasi
+                </p>
+                <p className="text-xs text-gray-700 truncate">
+                  {project.alamat}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                Progress
+              </span>
+              <span className="text-base font-black text-gray-900">
+                {project.progress}%
+              </span>
+            </div>
+            <div className="relative w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-500 ${getProgressColor(
+                  project.progress
+                )}`}
+                style={{ width: `${project.progress}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Footer - Last Update */}
+          <div className="pt-3 border-t border-gray-100">
+            <div className="flex items-center gap-2 text-gray-400">
+              <CalendarDays className="w-3.5 h-3.5" />
+              <p className="text-xs">
+                Update:{" "}
+                <span className="font-semibold text-gray-600">
+                  {formatDate(project.lastUpdate)}
+                </span>
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
+/**
+ * Stats Card Component - Displays individual statistic
+ */
+function StatsCard({
+  title,
+  value,
+  icon: Icon,
+  bgColor,
+  textColor,
+  iconColor,
+}: {
+  title: string;
+  value: number;
+  icon: typeof Building2;
+  bgColor: string;
+  textColor: string;
+  iconColor: string;
+}) {
+  return (
+    <Card className="bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+      <CardContent className="p-5 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
+          <p className={`text-3xl font-bold ${textColor}`}>{value}</p>
+        </div>
+        <div
+          className={`w-12 h-12 ${bgColor} rounded-full flex items-center justify-center`}
+        >
+          <Icon className={`w-6 h-6 ${iconColor}`} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Empty State Component - Shown when no projects exist
+ */
+function EmptyState() {
+  return (
+    <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-300">
+      <Building2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+      <h3 className="text-lg font-medium text-gray-900">Belum ada proyek</h3>
+      <p className="text-gray-500 max-w-sm mx-auto mt-2">
+        Anda belum memiliki proyek yang terdaftar. Hubungi admin untuk informasi
+        lebih lanjut.
+      </p>
+    </div>
+  );
+}
+
+// ============================================
+// MAIN PAGE COMPONENT
+// ============================================
 
 export default async function KlienProyekPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions);
 
-  if (!session?.user) redirect('/login')
-  if (session.user.role !== 'pelanggan') redirect('/unauthorized')
+  if (!session?.user) redirect("/login");
+  if (session.user.role !== "pelanggan") redirect("/unauthorized");
 
-  // Fetch client's projects
-  const klienProjects = await db.query.projeks.findMany({
+  // Fetch client's projects with mandor relation
+  const klienProjects = (await db.query.projeks.findMany({
     where: eq(projeks.pelangganId, session.user.id),
     orderBy: [desc(projeks.lastUpdate)],
     with: {
@@ -32,29 +297,22 @@ export default async function KlienProyekPage() {
         columns: {
           id: true,
           nama: true,
-          telpon: true
-        }
-      }
-    }
-  })
+          telpon: true,
+        },
+      },
+    },
+  })) as ProjectWithMandor[];
 
-  // Calculate simple stats
-  const totalProyek = klienProjects.length
-  const proyekAktif = klienProjects.filter(p => p.status === 'Dalam Progress').length
-  const proyekSelesai = klienProjects.filter(p => p.status === 'Selesai').length
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Dalam Progress': return 'bg-blue-100 text-blue-700 border-blue-200'
-      case 'Selesai': return 'bg-green-100 text-green-700 border-green-200'
-      case 'Perencanaan': return 'bg-yellow-100 text-yellow-700 border-yellow-200'
-      default: return 'bg-gray-100 text-gray-700 border-gray-200'
-    }
-  }
+  // Calculate stats
+  const stats = {
+    total: klienProjects.length,
+    aktif: klienProjects.filter((p) => p.status === "Dalam Progress").length,
+    selesai: klienProjects.filter((p) => p.status === "Selesai").length,
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 p-1">
-      {/* 1. Header Section */}
+      {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
@@ -66,179 +324,66 @@ export default async function KlienProyekPage() {
         </div>
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 shadow-sm">
           <CalendarDays className="w-4 h-4" />
-          {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
+          {new Date().toLocaleDateString("id-ID", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
         </div>
       </div>
 
-      {/* 2. Quick Stats Grid */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Total Proyek</p>
-              <p className="text-3xl font-bold text-gray-900">{totalProyek}</p>
-            </div>
-            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-gray-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Sedang Berjalan</p>
-              <p className="text-3xl font-bold text-blue-600">{proyekAktif}</p>
-            </div>
-            <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center">
-              <Activity className="w-6 h-6 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Selesai</p>
-              <p className="text-3xl font-bold text-green-600">{proyekSelesai}</p>
-            </div>
-            <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center">
-              <CheckCircle2 className="w-6 h-6 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Total Proyek"
+          value={stats.total}
+          icon={Building2}
+          bgColor="bg-gray-50"
+          textColor="text-gray-900"
+          iconColor="text-gray-500"
+        />
+        <StatsCard
+          title="Sedang Berjalan"
+          value={stats.aktif}
+          icon={Activity}
+          bgColor="bg-blue-50"
+          textColor="text-blue-600"
+          iconColor="text-blue-500"
+        />
+        <StatsCard
+          title="Selesai"
+          value={stats.selesai}
+          icon={CheckCircle2}
+          bgColor="bg-green-50"
+          textColor="text-green-600"
+          iconColor="text-green-500"
+        />
       </div>
 
-      {/* 3. Projects Grid */}
+      {/* Projects Section */}
       <section>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <LayoutGrid className="w-5 h-5 text-gray-500" />
-            <h2 className="text-lg font-semibold text-gray-900">Semua Proyek</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Semua Proyek
+            </h2>
           </div>
+          <span className="text-sm text-gray-500">
+            {klienProjects.length} proyek
+          </span>
         </div>
 
         {klienProjects.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {klienProjects.map((project) => (
-              <Link key={project.id} href={`/klien/proyek/${project.id}`}>
-                <Card hover className="h-full border-0 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                  <CardContent className="p-6">
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="font-bold text-lg text-gray-900 mb-1 line-clamp-1">
-                          {project.nama}
-                        </h3>
-                        <p className="text-xs text-gray-500">
-                          {project.tipeLayanan}
-                        </p>
-                      </div>
-                      <Badge className={`px-3 py-1 ${getStatusColor(project.status)}`}>
-                        {project.status}
-                      </Badge>
-                    </div>
-                    
-                    {/* Deskripsi */}
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-2 leading-relaxed">
-                      {project.deskripsi}
-                    </p>
-
-                    {/* Info Mandor & Lokasi */}
-                    <div className="space-y-3 mb-4 pb-4 border-b border-gray-200">
-                      <div className="flex items-start gap-3 p-2 rounded-lg bg-gray-50">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            Mandor
-                          </p>
-                          <p className="text-sm font-bold text-gray-900 truncate">
-                            {project.mandor?.nama || 'Belum ditentukan'}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3 p-2 rounded-lg bg-gray-50">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            Lokasi
-                          </p>
-                          <p className="text-sm text-gray-700 truncate">
-                            {project.alamat}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div>
-                      <div className="flex items-center justify-between text-sm mb-3">
-                        <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
-                          Progress
-                        </span>
-                        <span className="text-lg font-black text-gray-900">
-                          {project.progress}%
-                        </span>
-                      </div>
-                      <div className="relative w-full h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
-                        <div
-                          className={`h-full transition-all duration-500 relative ${
-                            project.progress >= 80 
-                              ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' 
-                              : project.progress >= 50 
-                              ? 'bg-gradient-to-r from-blue-500 to-blue-400' 
-                              : project.progress >= 30
-                              ? 'bg-gradient-to-r from-amber-500 to-amber-400'
-                              : 'bg-gradient-to-r from-rose-500 to-rose-400'
-                          }`}
-                          style={{ width: `${project.progress}%` }}
-                        >
-                          <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Last Update */}
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                        </svg>
-                        <p className="text-xs text-gray-500">
-                          Update terakhir: <span className="font-bold text-gray-700">
-                            {new Date(project.lastUpdate).toLocaleDateString('id-ID', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric'
-                            })}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+              <ProjectCard key={project.id} project={project} />
             ))}
           </div>
         ) : (
-          <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-300">
-            <Building2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900">Belum ada proyek</h3>
-            <p className="text-gray-500 max-w-sm mx-auto mt-2">
-              Anda belum memiliki proyek yang terdaftar. Hubungi admin untuk informasi lebih lanjut.
-            </p>
-          </div>
+          <EmptyState />
         )}
       </section>
     </div>
-  )
+  );
 }

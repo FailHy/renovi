@@ -171,9 +171,8 @@ export default function ManajemenProyekPage() {
       const processedProyeks = validProyeks.map((proyek: any) => {
         let mandorNama = proyek.mandor;
         if (!mandorNama && mandorData && proyek.mandorId) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const foundMandor = mandorData.find(
-            (m: any) => m.value === proyek.mandorId
+            (m: { value: string; label: string }) => m.value === proyek.mandorId
           );
           mandorNama = foundMandor ? foundMandor.label : null;
         }
